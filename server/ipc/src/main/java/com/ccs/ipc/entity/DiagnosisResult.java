@@ -3,9 +3,7 @@ package com.ccs.ipc.entity;
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
-import lombok.Getter;
-import lombok.Setter;
-import lombok.ToString;
+import lombok.*;
 
 import java.io.Serializable;
 import java.math.BigDecimal;
@@ -19,9 +17,9 @@ import java.time.LocalDateTime;
  * @author WZH
  * @since 2026-01-19
  */
-@Getter
-@Setter
-@ToString
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
 @TableName("diagnosis_result")
 public class DiagnosisResult implements Serializable {
 
