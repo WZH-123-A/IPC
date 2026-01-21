@@ -27,4 +27,10 @@ public class GlobalExceptionHandler {
         });
         return Response.fail(ResultCode.PARAM_VALIDATE_ERROR, errors);
     }
+
+    @ExceptionHandler(Exception.class)
+    public Response handleException(Exception e) {
+        log.error("系统异常: ", e);
+        return Response.fail(ResultCode.FAIL, null);
+    }
 }

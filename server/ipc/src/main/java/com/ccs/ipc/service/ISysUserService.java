@@ -1,5 +1,8 @@
 package com.ccs.ipc.service;
 
+import com.ccs.ipc.dto.ChangePasswordRequest;
+import com.ccs.ipc.dto.LoginResponse;
+import com.ccs.ipc.dto.UpdateUserRequest;
 import com.ccs.ipc.entity.SysUser;
 import com.baomidou.mybatisplus.extension.service.IService;
 
@@ -12,5 +15,14 @@ import com.baomidou.mybatisplus.extension.service.IService;
  * @since 2026-01-19
  */
 public interface ISysUserService extends IService<SysUser> {
+
+    //登录
+    LoginResponse login(String username, String password);
+
+    //修改信息
+    SysUser updateUser(Long userId, UpdateUserRequest request);
+
+    //修改密码
+    void changePassword(Long userId, ChangePasswordRequest request);
 
 }

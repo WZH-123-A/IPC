@@ -101,7 +101,24 @@ public class Response<T> implements Serializable {
      */
     public static <T> Response<T> fail(String message) {
         Response<T> response = new Response<>();
-        response.setCode(ResultCode.FAIL.getCode());
+
+        Integer failCode;
+        if (ResultCode.UNAUTHORIZED.getMessage().equals(message)) {
+            failCode = ResultCode.UNAUTHORIZED.getCode();
+        } else if (ResultCode.TOKEN_INVALID.getMessage().equals(message)) {
+            failCode = ResultCode.TOKEN_INVALID.getCode();
+        } else if (ResultCode.TOKEN_EXPIRED.getMessage().equals(message)) {
+            failCode = ResultCode.TOKEN_EXPIRED.getCode();
+        } else if (ResultCode.USER_NOT_FOUND.getMessage().equals(message)) {
+            failCode = ResultCode.USER_NOT_FOUND.getCode();
+        } else if (ResultCode.USER_PASSWORD_ERROR.getMessage().equals(message)) {
+            failCode = ResultCode.USER_PASSWORD_ERROR.getCode();
+        } else if (ResultCode.USER_DISABLED.getMessage().equals(message)) {
+            failCode = ResultCode.USER_DISABLED.getCode();
+        } else {
+            failCode = ResultCode.FAIL.getCode();
+        }
+        response.setCode(failCode);
         response.setMessage(message);
         response.setTimestamp(System.currentTimeMillis());
         return response;
