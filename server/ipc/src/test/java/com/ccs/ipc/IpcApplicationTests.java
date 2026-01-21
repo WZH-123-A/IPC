@@ -30,14 +30,14 @@ class IpcApplicationTests {
     public void test0(){
         SysUser sysUser = new SysUser();
         sysUser.setUsername("admin1");
-        sysUser.setPassword("123456");
+        String passWord = "123456";
+        String md5Password = PasswordUtil.encode(passWord);
+        sysUser.setPassword(md5Password);
         sysUser.setPhone("15623113922");
         sysUser.setEmail("3134925395@qq.com");
         sysUser.setRealName("伍智豪");
         sysUser.setGender(MALE);
         sysUser.setStatus(ENABLE);
-        sysUser.setCreateTime(LocalDateTime.now());
-        sysUser.setUpdateTime(LocalDateTime.now());
         sysUser.setIsDeleted(NOT_DELETED);
         sysUserMapper.insert(sysUser);
     }

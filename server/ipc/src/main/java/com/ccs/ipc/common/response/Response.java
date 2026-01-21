@@ -3,6 +3,7 @@ package com.ccs.ipc.common.response;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.springframework.http.HttpStatus;
 
 import java.io.Serializable;
 
@@ -122,5 +123,58 @@ public class Response<T> implements Serializable {
         response.setMessage(message);
         response.setTimestamp(System.currentTimeMillis());
         return response;
+    }
+
+    /**
+     * 根据业务错误码获取对应的HTTP状态码
+     *
+     * @return HTTP状态码
+     */
+    public HttpStatus getHttpStatus() {
+        if (code == null) {
+            return HttpStatus.INTERNAL_SERVER_ERROR;
+        }
+
+        // 如果是标准的HTTP状态码（200, 400, 401, 403等），直接使用
+        if (code == 200) {
+            return HttpStatus.OK;
+        } else if (code == 400) {
+            return HttpStatus.BAD_REQUEST;
+        } else if (code == 401) {
+            return HttpStatus.UNAUTHORIZED;
+        } else if (code == 403) {
+            return HttpStatus.FORBIDDEN;
+        } else if (code == 405) {
+            return HttpStatus.METHOD_NOT_ALLOWED;
+        } else if (code == 415) {
+            return HttpStatus.UNSUPPORTED_MEDIA_TYPE;
+        } else if (code == 500) {
+            return HttpStatus.INTERNAL_SERVER_ERROR;
+        }
+
+        // 业务错误码映射规则
+        if (code >= 1000 && code < 2000) {
+            // 通用业务错误 -> 400
+            return HttpStatus.BAD_REQUEST;
+        } else if (code >= 2000 && code < 3000) {
+            // 用户模块错误 -> 401 (认证相关)
+            if (code == ResultCode.USER_NOT_FOUND.getCode() || 
+                code == ResultCode.USER_PASSWORD_ERROR.getCode()) {
+                return HttpStatus.UNAUTHORIZED;
+            }
+            return HttpStatus.BAD_REQUEST;
+        } else if (code >= 3000 && code < 4000) {
+            // 权限模块错误
+            if (code == ResultCode.TOKEN_INVALID.getCode() || 
+                code == ResultCode.TOKEN_EXPIRED.getCode()) {
+                return HttpStatus.UNAUTHORIZED;
+            } else if (code == ResultCode.NO_PERMISSION.getCode()) {
+                return HttpStatus.FORBIDDEN;
+            }
+            return HttpStatus.UNAUTHORIZED;
+        }
+
+        // 默认返回500
+        return HttpStatus.INTERNAL_SERVER_ERROR;
     }
 }

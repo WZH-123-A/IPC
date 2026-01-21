@@ -362,7 +362,30 @@ CREATE TABLE `sys_operation_log` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='系统操作日志表';
 
 -- ----------------------------
--- 19. 数据统计表（用于数据驾驶舱）
+-- 19. 系统接口访问日志表
+-- ----------------------------
+DROP TABLE IF EXISTS `sys_access_log`;
+CREATE TABLE `sys_access_log` (
+  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '日志ID',
+  `user_id` bigint DEFAULT NULL COMMENT '用户ID',
+  `username` varchar(64) DEFAULT '' COMMENT '用户名',
+  `request_method` varchar(16) DEFAULT '' COMMENT '请求方法（GET/POST等）',
+  `request_url` varchar(512) DEFAULT '' COMMENT '请求URL',
+  `request_params` varchar(1000) DEFAULT '' COMMENT '请求参数',
+  `ip_address` varchar(64) DEFAULT '' COMMENT 'IP地址',
+  `user_agent` varchar(512) DEFAULT '' COMMENT '用户代理',
+  `response_status` int DEFAULT 200 COMMENT 'HTTP响应状态码',
+  `execution_time` bigint DEFAULT 0 COMMENT '执行时间（毫秒）',
+  `create_time` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  PRIMARY KEY (`id`),
+  KEY `idx_user_id` (`user_id`),
+  KEY `idx_request_url` (`request_url`),
+  KEY `idx_create_time` (`create_time`),
+  KEY `idx_response_status` (`response_status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='系统接口访问日志表';
+
+-- ----------------------------
+-- 20. 数据统计表（用于数据驾驶舱）
 -- ----------------------------
 DROP TABLE IF EXISTS `statistics_daily`;
 CREATE TABLE `statistics_daily` (
