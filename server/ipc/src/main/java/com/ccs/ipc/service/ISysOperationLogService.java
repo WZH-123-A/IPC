@@ -13,4 +13,10 @@ import com.baomidou.mybatisplus.extension.service.IService;
  */
 public interface ISysOperationLogService extends IService<SysOperationLog> {
 
+    /**
+     * 异步保存操作日志
+     *
+     * @param operationLog 操作日志
+     */
+    void saveAsync(SysOperationLog operationLog);
 }

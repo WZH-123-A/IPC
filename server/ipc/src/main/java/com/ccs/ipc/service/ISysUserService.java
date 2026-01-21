@@ -25,4 +25,7 @@ public interface ISysUserService extends IService<SysUser> {
     //修改密码
     void changePassword(Long userId, ChangePasswordRequest request);
 
+    //根据用户名获取用户ID
+    Long getUserIdByUsername(String username);
+
 }

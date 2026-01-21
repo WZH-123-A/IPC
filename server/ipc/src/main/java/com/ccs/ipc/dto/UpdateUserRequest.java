@@ -1,5 +1,6 @@
 package com.ccs.ipc.dto;
 
+import com.ccs.ipc.common.annotation.Sensitive;
 import lombok.Data;
 
 import java.io.Serializable;
@@ -18,16 +19,19 @@ public class UpdateUserRequest implements Serializable {
     /**
      * 手机号
      */
+    @Sensitive(type = Sensitive.SensitiveType.PHONE)
     private String phone;
 
     /**
      * 邮箱
      */
+    @Sensitive(type = Sensitive.SensitiveType.EMAIL)
     private String email;
 
     /**
      * 真实姓名
      */
+    @Sensitive(type = Sensitive.SensitiveType.NAME)
     private String realName;
 
     /**

@@ -1,5 +1,6 @@
 package com.ccs.ipc.dto;
 
+import com.ccs.ipc.common.annotation.Sensitive;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -37,6 +38,7 @@ public class LoginResponse implements Serializable {
     /**
      * 真实姓名
      */
+    @Sensitive(type = Sensitive.SensitiveType.NAME)
     private String realName;
 }
 

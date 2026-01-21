@@ -124,4 +124,17 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
         user.setPassword(encodedNewPassword);
         this.updateById(user);
     }
+
+    @Override
+    public Long getUserIdByUsername(String username) {
+        if (username == null || username.isEmpty()) {
+            return null;
+        }
+        LambdaQueryWrapper<SysUser> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(SysUser::getUsername, username)
+                .eq(SysUser::getIsDeleted, 0)
+                .select(SysUser::getId);
+        SysUser user = this.getOne(queryWrapper);
+        return user != null ? user.getId() : null;
+    }
 }

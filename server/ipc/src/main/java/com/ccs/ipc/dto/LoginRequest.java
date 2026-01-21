@@ -1,5 +1,7 @@
 package com.ccs.ipc.dto;
 
+import com.ccs.ipc.common.annotation.Sensitive;
+import com.ccs.ipc.common.annotation.UsernameField;
 import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 
@@ -20,12 +22,14 @@ public class LoginRequest implements Serializable {
      * 用户名
      */
     @NotBlank(message = "用户名不能为空")
+    @UsernameField
     private String username;
 
     /**
      * 密码
      */
     @NotBlank(message = "密码不能为空")
+    @Sensitive(type = Sensitive.SensitiveType.PASSWORD)
     private String password;
 }
 

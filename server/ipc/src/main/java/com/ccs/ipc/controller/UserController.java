@@ -1,5 +1,8 @@
 package com.ccs.ipc.controller;
 
+import com.ccs.ipc.common.annotation.Log;
+import com.ccs.ipc.common.enums.OperationModule;
+import com.ccs.ipc.common.enums.OperationType;
 import com.ccs.ipc.common.response.Response;
 import com.ccs.ipc.common.util.UserContext;
 import com.ccs.ipc.dto.ChangePasswordRequest;
@@ -39,6 +42,7 @@ public class UserController {
      * @return 更新后的用户信息
      */
     @PutMapping("/update")
+    @Log(operationType = OperationType.UPDATE, operationModule = OperationModule.USER, operationDesc = "更新用户信息")
     public Response<SysUser> updateUser(@Valid @RequestBody UpdateUserRequest request, 
                                         HttpServletRequest httpRequest) {
         Long userId = UserContext.getUserId(httpRequest);
@@ -58,6 +62,7 @@ public class UserController {
      * @return 操作结果
      */
     @PutMapping("/change-password")
+    @Log(operationType = OperationType.UPDATE_PASSWORD, operationModule = OperationModule.USER, operationDesc = "修改密码", saveRequestData = true, saveResponseData = true)
     public Response<Void> changePassword(@Valid @RequestBody ChangePasswordRequest request,
                                           HttpServletRequest httpRequest) {
         Long userId = UserContext.getUserId(httpRequest);

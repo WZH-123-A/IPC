@@ -1,5 +1,8 @@
 package com.ccs.ipc.controller;
 
+import com.ccs.ipc.common.annotation.Log;
+import com.ccs.ipc.common.enums.OperationModule;
+import com.ccs.ipc.common.enums.OperationType;
 import com.ccs.ipc.common.response.Response;
 import com.ccs.ipc.dto.LoginRequest;
 import com.ccs.ipc.dto.LoginResponse;
@@ -36,6 +39,7 @@ public class AuthController {
      * @return 登录响应信息
      */
     @PostMapping("/login")
+    @Log(operationType = OperationType.LOGIN, operationModule = OperationModule.AUTH, operationDesc = "用户登录", saveRequestData = true, saveResponseData = true)
     public Response<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
         LoginResponse response = sysUserService.login(request.getUsername(), request.getPassword());
         return Response.success(response);
