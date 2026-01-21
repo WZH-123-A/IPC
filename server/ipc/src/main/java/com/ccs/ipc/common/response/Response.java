@@ -154,13 +154,10 @@ public class Response<T> implements Serializable {
 
         // 业务错误码映射规则
         if (code >= 1000 && code < 2000) {
-            // 通用业务错误 -> 400
             return HttpStatus.BAD_REQUEST;
         } else if (code >= 2000 && code < 3000) {
-            // 用户模块错误 -> 401 (认证相关)
-            if (code == ResultCode.USER_NOT_FOUND.getCode() || 
-                code == ResultCode.USER_PASSWORD_ERROR.getCode()) {
-                return HttpStatus.UNAUTHORIZED;
+            if (code == ResultCode.USER_DISABLED.getCode()) {
+                return HttpStatus.FORBIDDEN;
             }
             return HttpStatus.BAD_REQUEST;
         } else if (code >= 3000 && code < 4000) {
