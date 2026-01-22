@@ -61,12 +61,15 @@
 
 <script setup lang="ts">
 import { ref, reactive } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
 import { User, Lock } from '@element-plus/icons-vue'
 import { useAuthStore } from '../stores/auth'
+import { getDefaultRouteByRole } from '../router/permission'
+import { addDynamicRoutes } from '../router'
 
 const router = useRouter()
+const route = useRoute()
 const authStore = useAuthStore()
 
 const loginFormRef = ref<FormInstance>()
@@ -81,7 +84,7 @@ const loginForm = reactive({
 const validateUsername = (
   _rule: unknown,
   value: string | undefined,
-  callback: (error?: Error) => void
+  callback: (error?: Error) => void,
 ) => {
   if (!value) {
     callback(new Error('请输入用户名'))
@@ -95,7 +98,7 @@ const validateUsername = (
 const validatePassword = (
   _rule: unknown,
   value: string | undefined,
-  callback: (error?: Error) => void
+  callback: (error?: Error) => void,
 ) => {
   if (!value) {
     callback(new Error('请输入密码'))
@@ -118,7 +121,6 @@ const handleLogin = async () => {
     if (valid) {
       loading.value = true
       try {
-        // 调用登录接口
         await authStore.login({
           username: loginForm.username,
           password: loginForm.password,
@@ -127,8 +129,19 @@ const handleLogin = async () => {
 
         ElMessage.success('登录成功')
 
-        // 跳转到首页
-        router.push('/home')
+        addDynamicRoutes()
+
+        const redirect = route.query.redirect as string | undefined
+        if (redirect) {
+          router.push(redirect)
+        } else {
+          if (authStore.userRole) {
+            const defaultRoute = getDefaultRouteByRole(authStore.userRole)
+            router.push({ name: defaultRoute })
+          } else {
+            router.push({ name: 'login' })
+          }
+        }
       } catch (error: unknown) {
         const errorMessage = error instanceof Error ? error.message : '登录失败，请检查用户名和密码'
         ElMessage.error(errorMessage)

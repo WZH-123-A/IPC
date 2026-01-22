@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.io.Serializable;
+import java.util.List;
 
 /**
  * 登录响应DTO
@@ -40,5 +41,10 @@ public class LoginResponse implements Serializable {
      */
     @Sensitive(type = Sensitive.SensitiveType.NAME)
     private String realName;
+
+    /**
+     * 角色编码列表（如：["patient", "doctor"]）
+     */
+    private List<String> roles;
 }
 

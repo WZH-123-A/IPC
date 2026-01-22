@@ -1,11 +1,35 @@
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
-import { loginApi, logoutApi, type LoginParams, type UserInfo } from '../api/auth'
+import { ref, computed } from 'vue'
+import { loginApi, logoutApi, type LoginParams, type UserInfo, type UserRole } from '../api/auth'
 
 export const useAuthStore = defineStore('auth', () => {
   const token = ref<string | null>(localStorage.getItem('token') || null)
   const userInfo = ref<UserInfo | null>(null)
   const isAuthenticated = ref<boolean>(!!token.value)
+
+  // 计算属性：获取用户角色列表
+  const userRoles = computed<UserRole[]>(() => {
+    return userInfo.value?.roles || []
+  })
+
+  // 计算属性：获取主要角色（第一个角色，用于路由跳转）
+  const userRole = computed(() => {
+    return userRoles.value.length > 0 ? userRoles.value[0] : null
+  })
+
+  // 计算属性：是否为患者
+  const isPatient = computed(() => userRoles.value.includes('patient'))
+
+  // 计算属性：是否为医生
+  const isDoctor = computed(() => userRoles.value.includes('doctor'))
+
+  // 计算属性：是否为管理员
+  const isAdmin = computed(() => userRoles.value.includes('admin'))
+
+  // 计算属性：是否拥有指定角色
+  const hasRole = (role: UserRole) => {
+    return userRoles.value.includes(role)
+  }
 
   // 登录
   const login = async (params: LoginParams) => {
@@ -13,18 +37,27 @@ export const useAuthStore = defineStore('auth', () => {
       // 调用登录 API
       const response = await loginApi(params)
       
+      // 将后端返回的数据转换为前端 UserInfo 格式
+      const userInfoData: UserInfo = {
+        id: response.userId,
+        userId: response.userId,
+        username: response.username,
+        realName: response.realName,
+        roles: response.roles || [],
+      }
+      
       // 更新状态
       token.value = response.token
-      userInfo.value = response.userInfo
+      userInfo.value = userInfoData
       isAuthenticated.value = true
       
       // 保存 token 和用户信息
       if (params.rememberMe) {
         localStorage.setItem('token', response.token)
-        localStorage.setItem('userInfo', JSON.stringify(response.userInfo))
+        localStorage.setItem('userInfo', JSON.stringify(userInfoData))
       } else {
         sessionStorage.setItem('token', response.token)
-        sessionStorage.setItem('userInfo', JSON.stringify(response.userInfo))
+        sessionStorage.setItem('userInfo', JSON.stringify(userInfoData))
       }
     } catch (error: unknown) {
       // 清除可能的部分状态
@@ -52,6 +85,10 @@ export const useAuthStore = defineStore('auth', () => {
       localStorage.removeItem('userInfo')
       sessionStorage.removeItem('token')
       sessionStorage.removeItem('userInfo')
+      
+      // 重置动态路由
+      const { resetDynamicRoutes } = await import('../router')
+      resetDynamicRoutes()
     }
   }
 
@@ -81,6 +118,12 @@ export const useAuthStore = defineStore('auth', () => {
     token,
     userInfo,
     isAuthenticated,
+    userRoles,
+    userRole,
+    isPatient,
+    isDoctor,
+    isAdmin,
+    hasRole,
     login,
     logout,
     checkAuth,

@@ -7,21 +7,25 @@ export interface LoginParams {
   rememberMe?: boolean
 }
 
-// 登录响应数据接口
+// 角色类型
+export type UserRole = 'patient' | 'doctor' | 'admin'
+
+// 登录响应数据接口（匹配后端 LoginResponse）
 export interface LoginResponse {
   token: string
-  userInfo: {
-    id: string
-    username: string
-    email?: string
-    avatar?: string
-  }
+  userId: number
+  username: string
+  realName: string
+  roles: UserRole[]
 }
 
 // 用户信息接口
 export interface UserInfo {
-  id: string
+  id: number
+  userId: number
   username: string
+  realName: string
+  roles: UserRole[]
   email?: string
   avatar?: string
 }
