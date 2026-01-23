@@ -1,10 +1,6 @@
 package com.ccs.ipc.service;
 
-import com.ccs.ipc.dto.ChangePasswordRequest;
-import com.ccs.ipc.dto.CreateUserRequest;
-import com.ccs.ipc.dto.LoginResponse;
-import com.ccs.ipc.dto.ResetPasswordRequest;
-import com.ccs.ipc.dto.UpdateUserRequest;
+import com.ccs.ipc.dto.*;
 import com.ccs.ipc.entity.SysUser;
 import com.baomidou.mybatisplus.extension.service.IService;
 
@@ -87,4 +83,20 @@ public interface ISysUserService extends IService<SysUser> {
      * @return API权限编码列表（类型为3）
      */
     List<String> getUserApiPermissions(Long userId);
+
+    /**
+     * 分页查询用户列表
+     *
+     * @param request 查询请求
+     * @return 用户列表
+     */
+    SysUserListResponse getUserList(SysUserListRequest request);
+
+    /**
+     * 根据ID获取用户详情
+     *
+     * @param id 用户ID
+     * @return 用户详情
+     */
+    SysUserResponse getUserById(Long id);
 }

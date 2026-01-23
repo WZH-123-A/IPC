@@ -1,20 +1,14 @@
 package com.ccs.ipc.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.ccs.ipc.common.exception.ApiException;
+import com.ccs.ipc.common.response.Response;
 import com.ccs.ipc.common.response.ResultCode;
 import com.ccs.ipc.common.util.JwtUtil;
 import com.ccs.ipc.common.util.PasswordUtil;
-import com.ccs.ipc.dto.ChangePasswordRequest;
-import com.ccs.ipc.dto.CreateUserRequest;
-import com.ccs.ipc.dto.LoginResponse;
-import com.ccs.ipc.dto.ResetPasswordRequest;
-import com.ccs.ipc.dto.UpdateUserRequest;
-import com.ccs.ipc.entity.SysPermission;
-import com.ccs.ipc.entity.SysRole;
-import com.ccs.ipc.entity.SysRolePermission;
-import com.ccs.ipc.entity.SysUser;
-import com.ccs.ipc.entity.SysUserRole;
+import com.ccs.ipc.dto.*;
+import com.ccs.ipc.entity.*;
 import com.ccs.ipc.mapper.SysUserMapper;
 import com.ccs.ipc.service.ISysPermissionService;
 import com.ccs.ipc.service.ISysRolePermissionService;
@@ -22,12 +16,14 @@ import com.ccs.ipc.service.ISysRoleService;
 import com.ccs.ipc.service.ISysUserRoleService;
 import com.ccs.ipc.service.ISysUserService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -388,6 +384,48 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
                 .collect(Collectors.toList());
     }
 
+    @Override
+    public SysUserListResponse getUserList(SysUserListRequest request) {
+        long current = request.getCurrent() != null && request.getCurrent() > 0 ? request.getCurrent() : 1;
+        long size = request.getSize() != null && request.getSize() > 0 ? request.getSize() : 10;
+
+        Page<SysUser> page = new Page<>(current, size);
+        LambdaQueryWrapper<SysUser> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(SysUser::getIsDeleted, 0);
+
+        if (StringUtils.hasText(request.getUserName())) {
+            queryWrapper.like(SysUser::getUsername, request.getUserName());
+        }
+        if (StringUtils.hasText(request.getRealName())) {
+            queryWrapper.like(SysUser::getRealName, request.getRealName());
+        }
+        if (request.getStatus() != null) {
+            queryWrapper.eq(SysUser::getStatus, request.getStatus());
+        }
+        queryWrapper.orderByDesc(SysUser::getCreateTime);
+
+        Page<SysUser> result = this.page(page, queryWrapper);
+
+        SysUserListResponse response = new SysUserListResponse();
+        response.setTotal(result.getTotal());
+        response.setCurrent(result.getCurrent());
+        response.setSize(result.getSize());
+
+        List<SysUserResponse> responseList = new ArrayList<>();
+        for(SysUser user : result.getRecords()){
+            responseList.add(convertToResponse(user));
+        }
+        response.setRecords(responseList);
+        return response;
+    }
+
+    @Override
+    public SysUserResponse getUserById(Long id)
+    {
+        SysUser user = this.getById(id);
+        return convertToResponse(user);
+    }
+
     /**
      * 分配角色给用户
      *
@@ -412,5 +450,14 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
                     .collect(Collectors.toList());
             sysUserRoleService.saveBatch(userRoles);
         }
+    }
+
+    /**
+     * 将实体转换为Response
+     */
+    private SysUserResponse convertToResponse(SysUser user) {
+        SysUserResponse response = new SysUserResponse();
+        BeanUtils.copyProperties(user, response);
+        return response;
     }
 }

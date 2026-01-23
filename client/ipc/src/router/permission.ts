@@ -25,7 +25,7 @@ export const permissionRoutes: RouteRecordRaw[] = [
       {
         path: 'home',
         name: 'admin-home',
-        component: () => import('../views/admin/AdminHomeView.vue'),
+        component: () => import('../views/admin/home/HomeManager.vue'),
         meta: {
           title: '管理后台',
           requiresAuth: true,
@@ -35,7 +35,7 @@ export const permissionRoutes: RouteRecordRaw[] = [
       {
         path: 'users',
         name: 'admin-users',
-        component: () => import('../views/admin/UserManageView.vue'),
+        component: () => import('../views/admin/system/UsersManager.vue'),
         meta: {
           title: '用户管理',
           requiresAuth: true,
@@ -45,7 +45,7 @@ export const permissionRoutes: RouteRecordRaw[] = [
       {
         path: 'roles',
         name: 'admin-roles',
-        component: () => import('../views/admin/RoleManageView.vue'),
+        component: () => import('../views/admin/system/RolesManager.vue'),
         meta: {
           title: '角色管理',
           requiresAuth: true,
@@ -55,7 +55,7 @@ export const permissionRoutes: RouteRecordRaw[] = [
       {
         path: 'permissions',
         name: 'admin-permissions',
-        component: () => import('../views/admin/PermissionManageView.vue'),
+        component: () => import('../views/admin/system/PermissionsManager.vue'),
         meta: {
           title: '权限管理',
           requiresAuth: true,
@@ -66,7 +66,7 @@ export const permissionRoutes: RouteRecordRaw[] = [
       {
         path: 'files',
         name: 'admin-files',
-        component: () => import('../views/admin/FileManageView.vue'),
+        component: () => import('../views/admin/system/FilesManager.vue'),
         meta: {
           title: '文件管理',
           requiresAuth: true,
@@ -76,7 +76,7 @@ export const permissionRoutes: RouteRecordRaw[] = [
       {
         path: 'access-logs',
         name: 'admin-access-logs',
-        component: () => import('../views/admin/AccessLogManageView.vue'),
+        component: () => import('../views/admin/system/AccessLogsManager.vue'),
         meta: {
           title: '访问日志',
           requiresAuth: true,
@@ -86,7 +86,7 @@ export const permissionRoutes: RouteRecordRaw[] = [
       {
         path: 'operation-logs',
         name: 'admin-operation-logs',
-        component: () => import('../views/admin/OperationLogManageView.vue'),
+        component: () => import('../views/admin/system/OperationLogsManager.vue'),
         meta: {
           title: '操作日志',
           requiresAuth: true,
@@ -97,7 +97,7 @@ export const permissionRoutes: RouteRecordRaw[] = [
       {
         path: 'patient-info',
         name: 'admin-patient-info',
-        component: () => import('../views/admin/PatientInfoManageView.vue'),
+        component: () => import('../views/admin/user-info/PatientInfoManager.vue'),
         meta: {
           title: '患者信息',
           requiresAuth: true,
@@ -107,7 +107,7 @@ export const permissionRoutes: RouteRecordRaw[] = [
       {
         path: 'doctor-info',
         name: 'admin-doctor-info',
-        component: () => import('../views/admin/DoctorInfoManageView.vue'),
+        component: () => import('../views/admin/user-info/DoctorInfoManager.vue'),
         meta: {
           title: '医生信息',
           requiresAuth: true,
@@ -118,7 +118,7 @@ export const permissionRoutes: RouteRecordRaw[] = [
       {
         path: 'consultation-sessions',
         name: 'admin-consultation-sessions',
-        component: () => import('../views/admin/ConsultationSessionManageView.vue'),
+        component: () => import('../views/admin/consultation/SessionsManager.vue'),
         meta: {
           title: '问诊会话',
           requiresAuth: true,
@@ -128,7 +128,7 @@ export const permissionRoutes: RouteRecordRaw[] = [
       {
         path: 'consultation-messages',
         name: 'admin-consultation-messages',
-        component: () => import('../views/admin/ConsultationMessageManageView.vue'),
+        component: () => import('../views/admin/consultation/MessagesManager.vue'),
         meta: {
           title: '问诊消息',
           requiresAuth: true,
@@ -138,7 +138,7 @@ export const permissionRoutes: RouteRecordRaw[] = [
       {
         path: 'consultation-evaluations',
         name: 'admin-consultation-evaluations',
-        component: () => import('../views/admin/ConsultationEvaluationManageView.vue'),
+        component: () => import('../views/admin/consultation/EvaluationsManager.vue'),
         meta: {
           title: '问诊评价',
           requiresAuth: true,
@@ -149,7 +149,7 @@ export const permissionRoutes: RouteRecordRaw[] = [
       {
         path: 'skin-diagnosis-records',
         name: 'admin-skin-diagnosis-records',
-        component: () => import('../views/admin/SkinDiagnosisRecordManageView.vue'),
+        component: () => import('../views/admin/diagnosis/SkinDiagnosisRecordsManager.vue'),
         meta: {
           title: '皮肤诊断记录',
           requiresAuth: true,
@@ -159,7 +159,7 @@ export const permissionRoutes: RouteRecordRaw[] = [
       {
         path: 'diagnosis-results',
         name: 'admin-diagnosis-results',
-        component: () => import('../views/admin/DiagnosisResultManageView.vue'),
+        component: () => import('../views/admin/diagnosis/ResultsManager.vue'),
         meta: {
           title: '诊断结果',
           requiresAuth: true,
@@ -169,7 +169,7 @@ export const permissionRoutes: RouteRecordRaw[] = [
       {
         path: 'disease-types',
         name: 'admin-disease-types',
-        component: () => import('../views/admin/DiseaseTypeManageView.vue'),
+        component: () => import('../views/admin/diagnosis/DiseaseTypesManager.vue'),
         meta: {
           title: '疾病类型',
           requiresAuth: true,
@@ -180,7 +180,7 @@ export const permissionRoutes: RouteRecordRaw[] = [
       {
         path: 'knowledge-categories',
         name: 'admin-knowledge-categories',
-        component: () => import('../views/admin/KnowledgeCategoryManageView.vue'),
+        component: () => import('../views/admin/knowledge/CategoriesManager.vue'),
         meta: {
           title: '知识库分类',
           requiresAuth: true,
@@ -190,7 +190,7 @@ export const permissionRoutes: RouteRecordRaw[] = [
       {
         path: 'knowledge-contents',
         name: 'admin-knowledge-contents',
-        component: () => import('../views/admin/KnowledgeContentManageView.vue'),
+        component: () => import('../views/admin/knowledge/ContentsManager.vue'),
         meta: {
           title: '知识库内容',
           requiresAuth: true,
@@ -200,7 +200,7 @@ export const permissionRoutes: RouteRecordRaw[] = [
       {
         path: 'knowledge-tags',
         name: 'admin-knowledge-tags',
-        component: () => import('../views/admin/KnowledgeTagManageView.vue'),
+        component: () => import('../views/admin/knowledge/TagsManager.vue'),
         meta: {
           title: '知识库标签',
           requiresAuth: true,
@@ -211,7 +211,7 @@ export const permissionRoutes: RouteRecordRaw[] = [
       {
         path: 'statistics-daily',
         name: 'admin-statistics-daily',
-        component: () => import('../views/admin/StatisticsDailyManageView.vue'),
+        component: () => import('../views/admin/statistics/DailyManager.vue'),
         meta: {
           title: '每日统计',
           requiresAuth: true,

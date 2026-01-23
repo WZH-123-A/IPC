@@ -20,7 +20,14 @@
       </el-form>
 
       <!-- 数据表格 -->
-      <el-table :data="dataList" v-loading="loading" border stripe>
+      <el-table
+        :data="dataList"
+        v-loading="loading"
+        border
+        stripe
+        @selection-change="handleSelectionChange"
+      >
+        <el-table-column type="selection" width="55" v-if="showSelection" />
         <slot name="table-columns" :dataList="dataList">
           <!-- 默认表格列 -->
           <el-table-column type="index" label="序号" width="60" />
@@ -36,17 +43,14 @@
       </el-table>
 
       <!-- 分页 -->
-      <div class="pagination">
-        <el-pagination
-          v-model:current-page="pagination.current"
-          v-model:page-size="pagination.size"
-          :total="pagination.total"
-          :page-sizes="[10, 20, 50, 100]"
-          layout="total, sizes, prev, pager, next, jumper"
-          @size-change="handleSizeChange"
-          @current-change="handleCurrentChange"
-        />
-      </div>
+      <AdminPagination
+        v-if="showPagination"
+        :current="pagination.current"
+        :size="pagination.size"
+        :total="pagination.total"
+        @size-change="handleSizeChange"
+        @current-change="handleCurrentChange"
+      />
     </el-card>
 
     <!-- 编辑对话框 -->
@@ -68,35 +72,42 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ref, reactive } from 'vue'
+import { ElMessageBox } from 'element-plus'
+import AdminPagination from './AdminPagination.vue'
 
 interface Props {
   title: string
   showAddButton?: boolean
   showActions?: boolean
+  showSelection?: boolean
+  showPagination?: boolean
 }
 
-const props = withDefaults(defineProps<Props>(), {
+withDefaults(defineProps<Props>(), {
   showAddButton: true,
   showActions: true,
+  showSelection: false,
+  showPagination: true,
 })
 
 const emit = defineEmits<{
-  search: [searchForm: any]
-  add: []
-  edit: [row: any]
-  delete: [row: any]
-  submit: [formData: any]
+  (e: 'search', searchForm: Record<string, unknown>): void
+  (e: 'add'): void
+  (e: 'edit', row: Record<string, unknown>): void
+  (e: 'delete', row: Record<string, unknown>): void
+  (e: 'submit', formData: Record<string, unknown>): void
+  (e: 'selection-change', selection: Record<string, unknown>[]): void
 }>()
 
 const loading = ref(false)
-const dataList = ref<any[]>([])
-const searchForm = reactive<any>({})
-const formData = reactive<any>({})
+const dataList = ref<Record<string, unknown>[]>([])
+const searchForm = reactive<Record<string, unknown>>({})
+const formData = reactive<Record<string, unknown>>({})
 const dialogVisible = ref(false)
 const dialogTitle = ref('新增')
 const isEdit = ref(false)
+const selectedRows = ref<Record<string, unknown>[]>([])
 
 const pagination = reactive({
   current: 1,
@@ -126,7 +137,7 @@ const handleAdd = () => {
   emit('add')
 }
 
-const handleEdit = (row: any) => {
+const handleEdit = (row: Record<string, unknown>) => {
   dialogTitle.value = '编辑'
   isEdit.value = true
   Object.assign(formData, row)
@@ -134,7 +145,7 @@ const handleEdit = (row: any) => {
   emit('edit', row)
 }
 
-const handleDelete = async (row: any) => {
+const handleDelete = async (row: Record<string, unknown>) => {
   try {
     await ElMessageBox.confirm('确定要删除这条记录吗？', '提示', {
       confirmButtonText: '确定',
@@ -167,11 +178,30 @@ const handleCurrentChange = (current: number) => {
   handleSearch()
 }
 
+const handleSelectionChange = (selection: Record<string, unknown>[]) => {
+  selectedRows.value = selection
+  emit('selection-change', selection)
+}
+
 defineExpose({
   loading,
   dataList,
   pagination,
   dialogVisible,
+  searchForm,
+  formData,
+  selectedRows,
+  setLoading: (value: boolean) => {
+    loading.value = value
+  },
+  setDataList: (data: Record<string, unknown>[]) => {
+    dataList.value = data
+  },
+  setPagination: (paginationData: { current: number; size: number; total: number }) => {
+    pagination.current = paginationData.current
+    pagination.size = paginationData.size
+    pagination.total = paginationData.total
+  },
 })
 </script>
 
@@ -184,15 +214,8 @@ defineExpose({
   margin-bottom: 20px;
 }
 
-.pagination {
-  margin-top: 20px;
-  display: flex;
-  justify-content: flex-end;
-}
-
 .card-header {
   font-size: 16px;
   font-weight: 600;
 }
 </style>
-

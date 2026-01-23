@@ -15,7 +15,7 @@
         default-expand-all
         node-key="id"
       >
-        <template #default="{ node, data }">
+        <template #default="{ data }">
           <div class="tree-node">
             <span class="node-label">{{ data.permissionName }}</span>
             <span class="node-code">({{ data.permissionCode }})</span>
@@ -23,9 +23,13 @@
               {{ getPermissionTypeName(data.permissionType) }}
             </el-tag>
             <div class="node-actions">
-              <el-button type="primary" link size="small" @click="handleAddChild(data)">添加子权限</el-button>
+              <el-button type="primary" link size="small" @click="handleAddChild(data)"
+                >添加子权限</el-button
+              >
               <el-button type="primary" link size="small" @click="handleEdit(data)">编辑</el-button>
-              <el-button type="danger" link size="small" @click="handleDelete(data)">删除</el-button>
+              <el-button type="danger" link size="small" @click="handleDelete(data)"
+                >删除</el-button
+              >
             </div>
           </div>
         </template>
@@ -39,20 +43,23 @@
       width="600px"
       @close="handleDialogClose"
     >
-      <el-form
-        ref="formRef"
-        :model="formData"
-        :rules="formRules"
-        label-width="100px"
-      >
+      <el-form ref="formRef" :model="formData" :rules="formRules" label-width="100px">
         <el-form-item label="权限编码" prop="permissionCode">
-          <el-input v-model="formData.permissionCode" :disabled="isEdit" placeholder="请输入权限编码" />
+          <el-input
+            v-model="formData.permissionCode"
+            :disabled="isEdit"
+            placeholder="请输入权限编码"
+          />
         </el-form-item>
         <el-form-item label="权限名称" prop="permissionName">
           <el-input v-model="formData.permissionName" placeholder="请输入权限名称" />
         </el-form-item>
         <el-form-item label="权限类型" prop="permissionType">
-          <el-select v-model="formData.permissionType" placeholder="请选择权限类型" style="width: 100%">
+          <el-select
+            v-model="formData.permissionType"
+            placeholder="请选择权限类型"
+            style="width: 100%"
+          >
             <el-option label="菜单权限" :value="1" />
             <el-option label="按钮权限" :value="2" />
             <el-option label="接口权限" :value="3" />
@@ -70,7 +77,12 @@
           />
         </el-form-item>
         <el-form-item label="排序" prop="sort">
-          <el-input-number v-model="formData.sort" :min="0" placeholder="请输入排序" style="width: 100%" />
+          <el-input-number
+            v-model="formData.sort"
+            :min="0"
+            placeholder="请输入排序"
+            style="width: 100%"
+          />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -92,7 +104,7 @@ import {
   type PermissionTreeNode,
   type CreatePermissionParams,
   type UpdatePermissionParams,
-} from '../../api/admin'
+} from '../../../api/admin/permission'
 
 const permissionTree = ref<PermissionTreeNode[]>([])
 
@@ -141,8 +153,9 @@ const getPermissionTypeTag = (type: number) => {
 const loadPermissionTree = async () => {
   try {
     permissionTree.value = await getPermissionTreeApi()
-  } catch (error: any) {
-    ElMessage.error(error.message || '加载权限树失败')
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : '加载权限树失败'
+    ElMessage.error(message)
   }
 }
 
@@ -184,9 +197,10 @@ const handleDelete = async (data: PermissionTreeNode) => {
     await deletePermissionApi(data.id)
     ElMessage.success('删除成功')
     loadPermissionTree()
-  } catch (error: any) {
+  } catch (error: unknown) {
     if (error !== 'cancel') {
-      ElMessage.error(error.message || '删除失败')
+      const message = error instanceof Error ? error.message : '删除失败'
+      ElMessage.error(message)
     }
   }
 }
@@ -219,8 +233,9 @@ const handleSubmit = async () => {
         }
         dialogVisible.value = false
         loadPermissionTree()
-      } catch (error: any) {
-        ElMessage.error(error.message || '操作失败')
+      } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : '操作失败'
+        ElMessage.error(message)
       }
     }
   })
@@ -284,4 +299,3 @@ onMounted(() => {
   margin-left: auto;
 }
 </style>
-

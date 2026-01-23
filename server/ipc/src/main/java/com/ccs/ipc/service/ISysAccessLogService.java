@@ -1,5 +1,8 @@
 package com.ccs.ipc.service;
 
+import com.ccs.ipc.dto.AccessLogListRequest;
+import com.ccs.ipc.dto.AccessLogListResponse;
+import com.ccs.ipc.dto.AccessLogResponse;
 import com.ccs.ipc.entity.SysAccessLog;
 import com.baomidou.mybatisplus.extension.service.IService;
 
@@ -19,5 +22,21 @@ public interface ISysAccessLogService extends IService<SysAccessLog> {
      * @param accessLog 访问日志
      */
     void saveAsync(SysAccessLog accessLog);
+
+    /**
+     * 分页查询访问日志列表
+     *
+     * @param request 查询请求
+     * @return 分页响应
+     */
+    AccessLogListResponse getAccessLogList(AccessLogListRequest request);
+
+    /**
+     * 根据ID获取访问日志详情
+     *
+     * @param id 日志ID
+     * @return 访问日志响应
+     */
+    AccessLogResponse getAccessLogById(Long id);
 }
 

@@ -1,23 +1,17 @@
 package com.ccs.ipc.controller;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.ccs.ipc.common.annotation.Log;
 import com.ccs.ipc.common.annotation.RequirePermission;
 import com.ccs.ipc.common.enums.OperationModule;
 import com.ccs.ipc.common.enums.OperationType;
 import com.ccs.ipc.common.response.Response;
 import com.ccs.ipc.common.util.UserContext;
-import com.ccs.ipc.dto.ChangePasswordRequest;
-import com.ccs.ipc.dto.CreateUserRequest;
-import com.ccs.ipc.dto.ResetPasswordRequest;
-import com.ccs.ipc.dto.UpdateUserRequest;
+import com.ccs.ipc.dto.*;
 import com.ccs.ipc.entity.SysUser;
 import com.ccs.ipc.service.ISysUserService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -31,7 +25,7 @@ import java.util.List;
  */
 @RestController
 @RequestMapping("/api/user")
-public class UserController {
+public class SysUserController {
 
     @Autowired
     private ISysUserService sysUserService;
@@ -41,29 +35,9 @@ public class UserController {
      */
     @GetMapping("/list")
     @RequirePermission("api:user:list")
-    public Response<Page<SysUser>> getUserList(
-            @RequestParam(defaultValue = "1") Integer current,
-            @RequestParam(defaultValue = "10") Integer size,
-            @RequestParam(required = false) String username,
-            @RequestParam(required = false) String realName,
-            @RequestParam(required = false) Byte status) {
-        Page<SysUser> page = new Page<>(current, size);
-        LambdaQueryWrapper<SysUser> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(SysUser::getIsDeleted, 0);
-        
-        if (StringUtils.hasText(username)) {
-            queryWrapper.like(SysUser::getUsername, username);
-        }
-        if (StringUtils.hasText(realName)) {
-            queryWrapper.like(SysUser::getRealName, realName);
-        }
-        if (status != null) {
-            queryWrapper.eq(SysUser::getStatus, status);
-        }
-        queryWrapper.orderByDesc(SysUser::getCreateTime);
-        
-        Page<SysUser> result = sysUserService.page(page, queryWrapper);
-        return Response.success(result);
+    public Response<SysUserListResponse> getUserList(SysUserListRequest request) {
+        SysUserListResponse response = sysUserService.getUserList(request);
+        return Response.success(response);
     }
 
     /**
@@ -71,12 +45,13 @@ public class UserController {
      */
     @GetMapping("/{id}")
     @RequirePermission("api:user:detail")
-    public Response<SysUser> getUserById(@PathVariable Long id) {
-        SysUser user = sysUserService.getById(id);
-        if (user == null || (user.getIsDeleted() != null && user.getIsDeleted() == 1)) {
+    public Response<SysUserResponse> getUserById(@PathVariable Long id) {
+        SysUserResponse response = sysUserService.getUserById(id);
+        if(response == null)
+        {
             return Response.fail("用户不存在");
         }
-        return Response.success(user);
+        return Response.success(response);
     }
 
     /**

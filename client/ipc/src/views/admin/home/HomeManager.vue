@@ -47,7 +47,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
-import { useAuthStore } from '../../stores/auth'
+import { useAuthStore } from '../../../stores/auth'
 
 const authStore = useAuthStore()
 const currentTime = ref(new Date().toLocaleString())

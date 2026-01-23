@@ -1,5 +1,8 @@
 package com.ccs.ipc.service;
 
+import com.ccs.ipc.dto.OperationLogListRequest;
+import com.ccs.ipc.dto.OperationLogListResponse;
+import com.ccs.ipc.dto.OperationLogResponse;
 import com.ccs.ipc.entity.SysOperationLog;
 import com.baomidou.mybatisplus.extension.service.IService;
 
@@ -19,4 +22,20 @@ public interface ISysOperationLogService extends IService<SysOperationLog> {
      * @param operationLog 操作日志
      */
     void saveAsync(SysOperationLog operationLog);
+
+    /**
+     * 分页查询操作日志列表
+     *
+     * @param request 查询请求
+     * @return 分页响应
+     */
+    OperationLogListResponse getOperationLogList(OperationLogListRequest request);
+
+    /**
+     * 根据ID获取操作日志详情
+     *
+     * @param id 日志ID
+     * @return 操作日志响应
+     */
+    OperationLogResponse getOperationLogById(Long id);
 }
