@@ -62,6 +62,162 @@ export const permissionRoutes: RouteRecordRaw[] = [
           permission: 'admin:permissions',
         },
       },
+      // 系统管理
+      {
+        path: 'files',
+        name: 'admin-files',
+        component: () => import('../views/admin/FileManageView.vue'),
+        meta: {
+          title: '文件管理',
+          requiresAuth: true,
+          permission: 'admin:files',
+        },
+      },
+      {
+        path: 'access-logs',
+        name: 'admin-access-logs',
+        component: () => import('../views/admin/AccessLogManageView.vue'),
+        meta: {
+          title: '访问日志',
+          requiresAuth: true,
+          permission: 'admin:access-logs',
+        },
+      },
+      {
+        path: 'operation-logs',
+        name: 'admin-operation-logs',
+        component: () => import('../views/admin/OperationLogManageView.vue'),
+        meta: {
+          title: '操作日志',
+          requiresAuth: true,
+          permission: 'admin:operation-logs',
+        },
+      },
+      // 用户信息管理
+      {
+        path: 'patient-info',
+        name: 'admin-patient-info',
+        component: () => import('../views/admin/PatientInfoManageView.vue'),
+        meta: {
+          title: '患者信息',
+          requiresAuth: true,
+          permission: 'admin:patient-info',
+        },
+      },
+      {
+        path: 'doctor-info',
+        name: 'admin-doctor-info',
+        component: () => import('../views/admin/DoctorInfoManageView.vue'),
+        meta: {
+          title: '医生信息',
+          requiresAuth: true,
+          permission: 'admin:doctor-info',
+        },
+      },
+      // 问诊管理
+      {
+        path: 'consultation-sessions',
+        name: 'admin-consultation-sessions',
+        component: () => import('../views/admin/ConsultationSessionManageView.vue'),
+        meta: {
+          title: '问诊会话',
+          requiresAuth: true,
+          permission: 'admin:consultation-sessions',
+        },
+      },
+      {
+        path: 'consultation-messages',
+        name: 'admin-consultation-messages',
+        component: () => import('../views/admin/ConsultationMessageManageView.vue'),
+        meta: {
+          title: '问诊消息',
+          requiresAuth: true,
+          permission: 'admin:consultation-messages',
+        },
+      },
+      {
+        path: 'consultation-evaluations',
+        name: 'admin-consultation-evaluations',
+        component: () => import('../views/admin/ConsultationEvaluationManageView.vue'),
+        meta: {
+          title: '问诊评价',
+          requiresAuth: true,
+          permission: 'admin:consultation-evaluations',
+        },
+      },
+      // 诊断管理
+      {
+        path: 'skin-diagnosis-records',
+        name: 'admin-skin-diagnosis-records',
+        component: () => import('../views/admin/SkinDiagnosisRecordManageView.vue'),
+        meta: {
+          title: '皮肤诊断记录',
+          requiresAuth: true,
+          permission: 'admin:skin-diagnosis-records',
+        },
+      },
+      {
+        path: 'diagnosis-results',
+        name: 'admin-diagnosis-results',
+        component: () => import('../views/admin/DiagnosisResultManageView.vue'),
+        meta: {
+          title: '诊断结果',
+          requiresAuth: true,
+          permission: 'admin:diagnosis-results',
+        },
+      },
+      {
+        path: 'disease-types',
+        name: 'admin-disease-types',
+        component: () => import('../views/admin/DiseaseTypeManageView.vue'),
+        meta: {
+          title: '疾病类型',
+          requiresAuth: true,
+          permission: 'admin:disease-types',
+        },
+      },
+      // 知识库管理
+      {
+        path: 'knowledge-categories',
+        name: 'admin-knowledge-categories',
+        component: () => import('../views/admin/KnowledgeCategoryManageView.vue'),
+        meta: {
+          title: '知识库分类',
+          requiresAuth: true,
+          permission: 'admin:knowledge-categories',
+        },
+      },
+      {
+        path: 'knowledge-contents',
+        name: 'admin-knowledge-contents',
+        component: () => import('../views/admin/KnowledgeContentManageView.vue'),
+        meta: {
+          title: '知识库内容',
+          requiresAuth: true,
+          permission: 'admin:knowledge-contents',
+        },
+      },
+      {
+        path: 'knowledge-tags',
+        name: 'admin-knowledge-tags',
+        component: () => import('../views/admin/KnowledgeTagManageView.vue'),
+        meta: {
+          title: '知识库标签',
+          requiresAuth: true,
+          permission: 'admin:knowledge-tags',
+        },
+      },
+      // 统计分析
+      {
+        path: 'statistics-daily',
+        name: 'admin-statistics-daily',
+        component: () => import('../views/admin/StatisticsDailyManageView.vue'),
+        meta: {
+          title: '每日统计',
+          requiresAuth: true,
+          permission: 'admin:statistics-daily',
+        },
+      },
     ],
   },
   // 患者相关路由
