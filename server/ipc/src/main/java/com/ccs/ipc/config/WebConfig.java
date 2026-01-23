@@ -1,6 +1,7 @@
 package com.ccs.ipc.config;
 
 import com.ccs.ipc.interceptor.JwtAuthInterceptor;
+import com.ccs.ipc.interceptor.PermissionInterceptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
@@ -19,6 +20,9 @@ public class WebConfig implements WebMvcConfigurer {
     @Autowired
     private JwtAuthInterceptor jwtAuthInterceptor;
 
+    @Autowired
+    private PermissionInterceptor permissionInterceptor;
+
     /**
      * 配置拦截器
      *
@@ -26,14 +30,25 @@ public class WebConfig implements WebMvcConfigurer {
      */
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
-
+        // JWT认证拦截器（先执行）
         registry.addInterceptor(jwtAuthInterceptor)
                 .addPathPatterns("/api/**") // 拦截所有/api/**路径
                 .excludePathPatterns(
                         "/api/auth/login",  // 登录接口不需要认证
                         "/error",           // 错误页面不需要认证
                         "/actuator/**"      // 监控端点不需要认证（如果有的话）
-                );
+                )
+                .order(1);
+
+        // 权限拦截器（后执行，在JWT认证之后）
+        registry.addInterceptor(permissionInterceptor)
+                .addPathPatterns("/api/**")
+                .excludePathPatterns(
+                        "/api/auth/login",  // 登录接口不需要权限检查
+                        "/error",
+                        "/actuator/**"
+                )
+                .order(2);
     }
 
     /**

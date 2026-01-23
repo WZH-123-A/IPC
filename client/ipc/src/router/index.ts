@@ -57,8 +57,17 @@ const hasPermissionsRoutesAdded = (permissions: string[]): boolean => {
   }
 
   // 检查所有应该添加的路由是否都已添加
+  // 对于嵌套路由，检查子路由的 name
   return expectedRoutes.every((route) => {
-    return route.name && addedRouteNames.has(route.name as string)
+    if (route.children && route.children.length > 0) {
+      // 嵌套路由：检查所有子路由是否都已添加
+      return route.children.every((child) => {
+        return child.name && addedRouteNames.has(child.name as string)
+      })
+    } else {
+      // 普通路由：检查路由本身
+      return route.name && addedRouteNames.has(route.name as string)
+    }
   })
 }
 
@@ -78,9 +87,25 @@ export const addDynamicRoutes = () => {
 
   // 添加路由（去重）
   routesToAdd.forEach((route) => {
-    if (route.name && !addedRouteNames.has(route.name as string)) {
-      router.addRoute(route)
-      addedRouteNames.add(route.name as string)
+    if (route.children && route.children.length > 0) {
+      // 嵌套路由：添加父路由，并记录所有子路由的 name
+      if (!addedRouteNames.has(route.path)) {
+        router.addRoute(route)
+        // 记录父路由路径，避免重复添加
+        addedRouteNames.add(route.path)
+      }
+      // 记录所有子路由的 name
+      route.children.forEach((child) => {
+        if (child.name && !addedRouteNames.has(child.name as string)) {
+          addedRouteNames.add(child.name as string)
+        }
+      })
+    } else {
+      // 普通路由
+      if (route.name && !addedRouteNames.has(route.name as string)) {
+        router.addRoute(route)
+        addedRouteNames.add(route.name as string)
+      }
     }
   })
 }
@@ -97,11 +122,20 @@ export const resetDynamicRoutes = () => {
   const routes = router.getRoutes()
   routes.forEach((route: RouteLocationNormalized | RouteRecordRaw) => {
     // 移除有权限要求的路由（排除基础路由）
-    if (route.meta?.permission && route.name && addedRouteNames.has(route.name as string)) {
-      router.removeRoute(route.name)
-      addedRouteNames.delete(route.name as string)
+    if (route.meta?.permission) {
+      if (route.name && addedRouteNames.has(route.name as string)) {
+        router.removeRoute(route.name)
+        addedRouteNames.delete(route.name as string)
+      } else if (route.path && addedRouteNames.has(route.path)) {
+        // 处理嵌套路由的父路由（可能没有 name）
+        router.removeRoute(route.path)
+        addedRouteNames.delete(route.path)
+      }
     }
   })
+  
+  // 清空记录集合
+  addedRouteNames.clear()
 }
 
 // 路由守卫

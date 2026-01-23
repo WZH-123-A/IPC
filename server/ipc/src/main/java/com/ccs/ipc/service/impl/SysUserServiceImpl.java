@@ -6,7 +6,9 @@ import com.ccs.ipc.common.response.ResultCode;
 import com.ccs.ipc.common.util.JwtUtil;
 import com.ccs.ipc.common.util.PasswordUtil;
 import com.ccs.ipc.dto.ChangePasswordRequest;
+import com.ccs.ipc.dto.CreateUserRequest;
 import com.ccs.ipc.dto.LoginResponse;
+import com.ccs.ipc.dto.ResetPasswordRequest;
 import com.ccs.ipc.dto.UpdateUserRequest;
 import com.ccs.ipc.entity.SysPermission;
 import com.ccs.ipc.entity.SysRole;
@@ -22,6 +24,8 @@ import com.ccs.ipc.service.ISysUserService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -244,5 +248,169 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
                 .map(SysPermission::getPermissionCode)
                 .distinct()
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public SysUser createUser(CreateUserRequest request) {
+        // 检查用户名是否已存在
+        LambdaQueryWrapper<SysUser> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(SysUser::getUsername, request.getUsername())
+                .eq(SysUser::getIsDeleted, 0);
+        SysUser existUser = this.getOne(queryWrapper);
+        if (existUser != null) {
+            throw new ApiException(ResultCode.FAIL.getMessage() + ": 用户名已存在");
+        }
+
+        // 创建用户
+        SysUser user = new SysUser();
+        user.setUsername(request.getUsername());
+        user.setPassword(PasswordUtil.encode(request.getPassword()));
+        user.setPhone(request.getPhone());
+        user.setEmail(request.getEmail());
+        user.setRealName(request.getRealName());
+        user.setGender(request.getGender());
+        user.setStatus(request.getStatus() != null ? request.getStatus() : (byte) 1);
+        user.setIsDeleted((byte) 0);
+        this.save(user);
+
+        // 分配角色
+        if (request.getRoleIds() != null && !request.getRoleIds().isEmpty()) {
+            assignRoles(user.getId(), request.getRoleIds());
+        }
+
+        return user;
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public SysUser updateUserByAdmin(Long id, UpdateUserRequest request) {
+        SysUser user = this.getById(id);
+        if (user == null || (user.getIsDeleted() != null && user.getIsDeleted() == 1)) {
+            throw new ApiException(ResultCode.FAIL.getMessage() + ": 用户不存在");
+        }
+
+        // 更新用户信息
+        if (StringUtils.hasText(request.getPhone())) {
+            user.setPhone(request.getPhone());
+        }
+        if (StringUtils.hasText(request.getEmail())) {
+            user.setEmail(request.getEmail());
+        }
+        if (StringUtils.hasText(request.getRealName())) {
+            user.setRealName(request.getRealName());
+        }
+        if (request.getGender() != null) {
+            user.setGender(request.getGender());
+        }
+        if (request.getStatus() != null) {
+            user.setStatus(request.getStatus());
+        }
+        this.updateById(user);
+
+        // 更新角色
+        if (request.getRoleIds() != null) {
+            assignRoles(id, request.getRoleIds());
+        }
+
+        return user;
+    }
+
+    @Override
+    public void deleteUser(Long id) {
+        SysUser user = this.getById(id);
+        if (user == null || (user.getIsDeleted() != null && user.getIsDeleted() == 1)) {
+            throw new ApiException(ResultCode.FAIL.getMessage() + ": 用户不存在");
+        }
+        user.setIsDeleted((byte) 1);
+        this.updateById(user);
+    }
+
+    @Override
+    public void resetPassword(Long id, ResetPasswordRequest request) {
+        SysUser user = this.getById(id);
+        if (user == null || (user.getIsDeleted() != null && user.getIsDeleted() == 1)) {
+            throw new ApiException(ResultCode.FAIL.getMessage() + ": 用户不存在");
+        }
+        user.setPassword(PasswordUtil.encode(request.getPassword()));
+        this.updateById(user);
+    }
+
+    @Override
+    public List<Long> getUserRoleIds(Long userId) {
+        LambdaQueryWrapper<SysUserRole> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(SysUserRole::getUserId, userId);
+        List<SysUserRole> userRoles = sysUserRoleService.list(queryWrapper);
+        return userRoles.stream()
+                .map(SysUserRole::getRoleId)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<String> getUserApiPermissions(Long userId) {
+        // 1. 查询用户角色关联
+        LambdaQueryWrapper<SysUserRole> userRoleWrapper = new LambdaQueryWrapper<>();
+        userRoleWrapper.eq(SysUserRole::getUserId, userId);
+        List<SysUserRole> userRoles = sysUserRoleService.list(userRoleWrapper);
+
+        if (userRoles == null || userRoles.isEmpty()) {
+            return new java.util.ArrayList<>();
+        }
+
+        // 2. 获取所有角色ID
+        List<Long> roleIds = userRoles.stream()
+                .map(SysUserRole::getRoleId)
+                .collect(Collectors.toList());
+
+        // 3. 查询角色权限关联
+        LambdaQueryWrapper<SysRolePermission> rolePermissionWrapper = new LambdaQueryWrapper<>();
+        rolePermissionWrapper.in(SysRolePermission::getRoleId, roleIds);
+        List<SysRolePermission> rolePermissions = sysRolePermissionService.list(rolePermissionWrapper);
+
+        if (rolePermissions == null || rolePermissions.isEmpty()) {
+            return new java.util.ArrayList<>();
+        }
+
+        // 4. 获取所有权限ID
+        List<Long> permissionIds = rolePermissions.stream()
+                .map(SysRolePermission::getPermissionId)
+                .distinct()
+                .collect(Collectors.toList());
+
+        // 5. 批量查询权限信息
+        List<SysPermission> permissions = sysPermissionService.listByIds(permissionIds);
+
+        // 6. 提取API权限编码（类型为3）
+        return permissions.stream()
+                .filter(p -> p.getPermissionType() != null && p.getPermissionType() == 3)
+                .map(SysPermission::getPermissionCode)
+                .distinct()
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * 分配角色给用户
+     *
+     * @param userId  用户ID
+     * @param roleIds 角色ID列表
+     */
+    private void assignRoles(Long userId, List<Long> roleIds) {
+        // 删除原有角色
+        LambdaQueryWrapper<SysUserRole> deleteWrapper = new LambdaQueryWrapper<>();
+        deleteWrapper.eq(SysUserRole::getUserId, userId);
+        sysUserRoleService.remove(deleteWrapper);
+
+        // 添加新角色
+        if (roleIds != null && !roleIds.isEmpty()) {
+            List<SysUserRole> userRoles = roleIds.stream()
+                    .map(roleId -> {
+                        SysUserRole userRole = new SysUserRole();
+                        userRole.setUserId(userId);
+                        userRole.setRoleId(roleId);
+                        return userRole;
+                    })
+                    .collect(Collectors.toList());
+            sysUserRoleService.saveBatch(userRoles);
+        }
     }
 }

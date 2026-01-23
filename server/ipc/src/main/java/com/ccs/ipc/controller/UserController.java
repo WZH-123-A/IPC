@@ -1,21 +1,30 @@
 package com.ccs.ipc.controller;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.ccs.ipc.common.annotation.Log;
+import com.ccs.ipc.common.annotation.RequirePermission;
 import com.ccs.ipc.common.enums.OperationModule;
 import com.ccs.ipc.common.enums.OperationType;
 import com.ccs.ipc.common.response.Response;
 import com.ccs.ipc.common.util.UserContext;
 import com.ccs.ipc.dto.ChangePasswordRequest;
+import com.ccs.ipc.dto.CreateUserRequest;
+import com.ccs.ipc.dto.ResetPasswordRequest;
 import com.ccs.ipc.dto.UpdateUserRequest;
 import com.ccs.ipc.entity.SysUser;
 import com.ccs.ipc.service.ISysUserService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 /**
  * 用户管理控制器
+ * 统一管理用户相关接口，通过权限注解控制访问
  *
  * @author WZH
  * @since 2026-01-19
@@ -28,38 +37,106 @@ public class UserController {
     private ISysUserService sysUserService;
 
     /**
-     * 更新当前登录用户信息
-     *
-     * @param request 更新请求信息
-     * {
-     *     "phone": "手机号",
-     *     "email": "邮箱",
-     *     "realName": "真实姓名",
-     *     "gender": 1,  // 0-未知 1-男 2-女
-     *     "avatar": "头像URL"
-     * }
-     * @param httpRequest HTTP请求
-     * @return 更新后的用户信息
+     * 分页查询用户列表
+     */
+    @GetMapping("/list")
+    @RequirePermission("api:user:list")
+    public Response<Page<SysUser>> getUserList(
+            @RequestParam(defaultValue = "1") Integer current,
+            @RequestParam(defaultValue = "10") Integer size,
+            @RequestParam(required = false) String username,
+            @RequestParam(required = false) String realName,
+            @RequestParam(required = false) Byte status) {
+        Page<SysUser> page = new Page<>(current, size);
+        LambdaQueryWrapper<SysUser> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(SysUser::getIsDeleted, 0);
+        
+        if (StringUtils.hasText(username)) {
+            queryWrapper.like(SysUser::getUsername, username);
+        }
+        if (StringUtils.hasText(realName)) {
+            queryWrapper.like(SysUser::getRealName, realName);
+        }
+        if (status != null) {
+            queryWrapper.eq(SysUser::getStatus, status);
+        }
+        queryWrapper.orderByDesc(SysUser::getCreateTime);
+        
+        Page<SysUser> result = sysUserService.page(page, queryWrapper);
+        return Response.success(result);
+    }
+
+    /**
+     * 根据ID获取用户详情
+     */
+    @GetMapping("/{id}")
+    @RequirePermission("api:user:detail")
+    public Response<SysUser> getUserById(@PathVariable Long id) {
+        SysUser user = sysUserService.getById(id);
+        if (user == null || (user.getIsDeleted() != null && user.getIsDeleted() == 1)) {
+            return Response.fail("用户不存在");
+        }
+        return Response.success(user);
+    }
+
+    /**
+     * 新增用户
+     */
+    @PostMapping
+    @RequirePermission("api:user:create")
+    @Log(operationType = OperationType.ADD, operationModule = OperationModule.USER, operationDesc = "新增用户")
+    public Response<SysUser> createUser(@Valid @RequestBody CreateUserRequest request) {
+        SysUser user = sysUserService.createUser(request);
+        return Response.success(user);
+    }
+
+    /**
+     * 更新用户（管理员功能，可更新所有字段包括status和roleIds）
+     */
+    @PutMapping("/{id}")
+    @RequirePermission("api:user:update")
+    @Log(operationType = OperationType.UPDATE, operationModule = OperationModule.USER, operationDesc = "更新用户")
+    public Response<SysUser> updateUser(@PathVariable Long id, @Valid @RequestBody UpdateUserRequest request) {
+        SysUser user = sysUserService.updateUserByAdmin(id, request);
+        return Response.success(user);
+    }
+
+    /**
+     * 更新当前登录用户信息（用户自己更新，不能更新status和roleIds）
      */
     @PutMapping("/update")
     @Log(operationType = OperationType.UPDATE, operationModule = OperationModule.USER, operationDesc = "更新用户信息")
-    public Response<SysUser> updateUser(@Valid @RequestBody UpdateUserRequest request, 
-                                        HttpServletRequest httpRequest) {
+    public Response<SysUser> updateCurrentUser(@Valid @RequestBody UpdateUserRequest request, 
+                                                HttpServletRequest httpRequest) {
         Long userId = UserContext.getUserId(httpRequest);
         SysUser user = sysUserService.updateUser(userId, request);
         return Response.success(user);
     }
 
     /**
-     * 修改密码
-     *
-     * @param request 修改密码请求信息
-     * {
-     *     "oldPassword": "旧密码",
-     *     "newPassword": "新密码"
-     * }
-     * @param httpRequest HTTP请求
-     * @return 操作结果
+     * 删除用户（逻辑删除）
+     */
+    @DeleteMapping("/{id}")
+    @RequirePermission("api:user:delete")
+    @Log(operationType = OperationType.DELETE, operationModule = OperationModule.USER, operationDesc = "删除用户")
+    public Response<Void> deleteUser(@PathVariable Long id) {
+        sysUserService.deleteUser(id);
+        return Response.success();
+    }
+
+    /**
+     * 重置用户密码
+     */
+    @PutMapping("/{id}/reset-password")
+    @RequirePermission("api:user:update")
+    @Log(operationType = OperationType.UPDATE_PASSWORD, operationModule = OperationModule.USER, operationDesc = "重置用户密码")
+    public Response<Void> resetPassword(@PathVariable Long id, @Valid @RequestBody ResetPasswordRequest request) {
+        sysUserService.resetPassword(id, request);
+        return Response.success();
+    }
+
+    /**
+     * 修改密码（当前登录用户）
      */
     @PutMapping("/change-password")
     @Log(operationType = OperationType.UPDATE_PASSWORD, operationModule = OperationModule.USER, operationDesc = "修改密码", saveRequestData = true, saveResponseData = true)
@@ -68,6 +145,16 @@ public class UserController {
         Long userId = UserContext.getUserId(httpRequest);
         sysUserService.changePassword(userId, request);
         return Response.success();
+    }
+
+    /**
+     * 获取用户的角色ID列表
+     */
+    @GetMapping("/{id}/roles")
+    @RequirePermission("api:user:detail")
+    public Response<List<Long>> getUserRoles(@PathVariable Long id) {
+        List<Long> roleIds = sysUserService.getUserRoleIds(id);
+        return Response.success(roleIds);
     }
 }
 

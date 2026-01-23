@@ -65,7 +65,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
 import { User, Lock } from '@element-plus/icons-vue'
 import { useAuthStore } from '../stores/auth'
-import { getDefaultRouteByRole } from '../router/permission'
+import { getDefaultRouteByRole, getDefaultRouteByPermissions } from '../router/permission'
 import { addDynamicRoutes } from '../router'
 
 const router = useRouter()
@@ -129,17 +129,24 @@ const handleLogin = async () => {
 
         ElMessage.success('登录成功')
 
+        // 添加动态路由
         addDynamicRoutes()
+
+        // 等待路由添加完成
+        await new Promise((resolve) => setTimeout(resolve, 100))
 
         const redirect = route.query.redirect as string | undefined
         if (redirect) {
           router.push(redirect)
         } else {
-          if (authStore.userRole) {
-            const defaultRoute = getDefaultRouteByRole(authStore.userRole)
-            router.push({ name: defaultRoute })
-          } else {
+          // 优先使用权限获取默认路由
+          const defaultRoute = getDefaultRouteByPermissions(authStore.userPermissions) 
+            || (authStore.userRole ? getDefaultRouteByRole(authStore.userRole) : 'login')
+          
+          if (defaultRoute === 'login') {
             router.push({ name: 'login' })
+          } else {
+            router.push({ name: defaultRoute })
           }
         }
       } catch (error: unknown) {
