@@ -26,9 +26,29 @@ export const useAuthStore = defineStore('auth', () => {
   // 计算属性：是否为管理员
   const isAdmin = computed(() => userRoles.value.includes('admin'))
 
+  // 计算属性：获取用户权限列表
+  const userPermissions = computed<string[]>(() => {
+    return userInfo.value?.permissions || []
+  })
+
   // 计算属性：是否拥有指定角色
   const hasRole = (role: UserRole) => {
     return userRoles.value.includes(role)
+  }
+
+  // 计算属性：是否拥有指定权限
+  const hasPermission = (permission: string) => {
+    return userPermissions.value.includes(permission)
+  }
+
+  // 计算属性：是否拥有任意一个权限
+  const hasAnyPermission = (permissions: string[]) => {
+    return permissions.some((permission) => userPermissions.value.includes(permission))
+  }
+
+  // 计算属性：是否拥有所有权限
+  const hasAllPermissions = (permissions: string[]) => {
+    return permissions.every((permission) => userPermissions.value.includes(permission))
   }
 
   // 登录
@@ -44,6 +64,7 @@ export const useAuthStore = defineStore('auth', () => {
         username: response.username,
         realName: response.realName,
         roles: response.roles || [],
+        permissions: response.permissions || [],
       }
       
       // 更新状态
@@ -120,10 +141,14 @@ export const useAuthStore = defineStore('auth', () => {
     isAuthenticated,
     userRoles,
     userRole,
+    userPermissions,
     isPatient,
     isDoctor,
     isAdmin,
     hasRole,
+    hasPermission,
+    hasAnyPermission,
+    hasAllPermissions,
     login,
     logout,
     checkAuth,

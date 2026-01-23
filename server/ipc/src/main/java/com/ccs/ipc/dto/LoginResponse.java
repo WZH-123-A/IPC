@@ -46,5 +46,10 @@ public class LoginResponse implements Serializable {
      * 角色编码列表（如：["patient", "doctor"]）
      */
     private List<String> roles;
+
+    /**
+     * 权限编码列表（如：["patient:home", "patient:consultation"]）
+     */
+    private List<String> permissions;
 }
 

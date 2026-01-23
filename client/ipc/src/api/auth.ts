@@ -17,6 +17,7 @@ export interface LoginResponse {
   username: string
   realName: string
   roles: UserRole[]
+  permissions: string[] // 权限编码列表（如：["patient:home", "patient:consultation"]）
 }
 
 // 用户信息接口
@@ -26,6 +27,7 @@ export interface UserInfo {
   username: string
   realName: string
   roles: UserRole[]
+  permissions: string[] // 权限编码列表
   email?: string
   avatar?: string
 }

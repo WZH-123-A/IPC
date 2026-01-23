@@ -1,7 +1,7 @@
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
-import { getRoutesByRoles, getDefaultRouteByRole } from './permission'
-import type { UserRole } from '../api/auth'
+import { getRoutesByPermissions, getDefaultRouteByRole, getDefaultRouteByPermissions } from './permission'
+import type { RouteLocationNormalized } from 'vue-router'
 
 // 基础路由（不需要权限）
 const constantRoutes: RouteRecordRaw[] = [
@@ -35,114 +35,90 @@ const router = createRouter({
   routes: constantRoutes,
 })
 
-// 已添加动态路由的角色集合
-const addedRoles = new Set<UserRole>()
+// 已添加的路由名称集合（用于去重）
+const addedRouteNames = new Set<string>()
 
 /**
- * 检查角色的路由是否已添加
- * @param roles 要检查的角色列表
- * @returns 如果所有角色的路由都已添加，返回 true
+ * 检查权限对应的路由是否已添加
+ * @param permissions 权限列表
+ * @returns 如果所有权限对应的路由都已添加，返回 true
  */
-const hasRolesRoutesAdded = (roles: UserRole[]): boolean => {
-  if (roles.length === 0) {
+const hasPermissionsRoutesAdded = (permissions: string[]): boolean => {
+  if (permissions.length === 0) {
     return false
   }
-  // 检查所有角色是否都已添加
-  return roles.every((role) => addedRoles.has(role))
+
+  // 根据权限获取应该添加的路由列表
+  const expectedRoutes = getRoutesByPermissions(permissions)
+
+  if (expectedRoutes.length === 0) {
+    // 如果没有应该添加的路由，认为已添加（避免无限循环）
+    return true
+  }
+
+  // 检查所有应该添加的路由是否都已添加
+  return expectedRoutes.every((route) => {
+    return route.name && addedRouteNames.has(route.name as string)
+  })
 }
 
 /**
- * 获取已添加路由的角色列表（用于调试）
- */
-export const getAddedRoles = (): UserRole[] => {
-  return Array.from(addedRoles)
-}
-
-/**
- * 检查指定角色的路由是否已添加
- */
-export const hasRoleRoutesAdded = (role: UserRole): boolean => {
-  return addedRoles.has(role)
-}
-
-/**
- * 添加动态路由
+ * 添加动态路由（基于权限）
  */
 export const addDynamicRoutes = () => {
   const authStore = useAuthStore()
-  const roles = authStore.userRoles
+  const permissions = authStore.userPermissions
 
-  if (!roles || roles.length === 0) {
+  if (!permissions || permissions.length === 0) {
     return
   }
 
-  if (hasRolesRoutesAdded(roles)) {
-    return
-  }
+  // 根据权限获取可访问的路由
+  const routesToAdd = getRoutesByPermissions(permissions)
 
-  const rolesToAdd = roles.filter((role) => !addedRoles.has(role))
-
-  if (rolesToAdd.length === 0) {
-    return
-  }
-
-  const roleRoutes = getRoutesByRoles(rolesToAdd)
-
-  roleRoutes.forEach((route) => {
-    router.addRoute(route)
-  })
-
-  // 记录已添加的角色
-  rolesToAdd.forEach((role) => {
-    addedRoles.add(role)
-  })
-}
-
-/**
- * 移除指定角色的动态路由
- * @param roles 要移除的角色列表，如果不传则移除所有角色的路由
- */
-export const removeRoleRoutes = (roles?: UserRole[]) => {
-  const routes = router.getRoutes()
-  const rolesToRemove = roles || Array.from(addedRoles)
-
-  routes.forEach((route) => {
-    const routeRoles = route.meta?.roles as UserRole[] | undefined
-    if (routeRoles && route.name) {
-      // 如果路由属于要移除的角色，则移除该路由
-      const shouldRemove = rolesToRemove.some((role) => routeRoles.includes(role))
-      if (shouldRemove) {
-        router.removeRoute(route.name)
-      }
+  // 添加路由（去重）
+  routesToAdd.forEach((route) => {
+    if (route.name && !addedRouteNames.has(route.name as string)) {
+      router.addRoute(route)
+      addedRouteNames.add(route.name as string)
     }
   })
-
-  // 从已添加的角色记录中移除
-  if (roles) {
-    roles.forEach((role) => addedRoles.delete(role))
-  } else {
-    addedRoles.clear()
-  }
 }
 
 /**
- * 重置所有动态路由（清空所有角色的路由）
+ * 重置所有动态路由
  */
 export const resetDynamicRoutes = () => {
-  removeRoleRoutes()
+  if (addedRouteNames.size === 0) {
+    return
+  }
+
+  // 移除所有动态路由
+  const routes = router.getRoutes()
+  routes.forEach((route: RouteLocationNormalized | RouteRecordRaw) => {
+    // 移除有权限要求的路由（排除基础路由）
+    if (route.meta?.permission && route.name && addedRouteNames.has(route.name as string)) {
+      router.removeRoute(route.name)
+      addedRouteNames.delete(route.name as string)
+    }
+  })
 }
 
 // 路由守卫
 router.beforeEach(async (to, from, next) => {
   const authStore = useAuthStore()
 
+  // 设置页面标题
   if (to.meta.title) {
     document.title = `${to.meta.title} - IPC系统`
   }
 
+  // 如果访问登录页
   if (to.name === 'login') {
     if (authStore.isAuthenticated) {
-      const defaultRoute = getDefaultRouteByRole(authStore.userRole ?? null)
+      // 已登录，根据权限或角色跳转到对应首页
+      const defaultRoute = getDefaultRouteByPermissions(authStore.userPermissions) 
+        || getDefaultRouteByRole(authStore.userRole ?? null)
       next({ name: defaultRoute })
     } else {
       next()
@@ -150,39 +126,43 @@ router.beforeEach(async (to, from, next) => {
     return
   }
 
+  // 如果已登录
   if (authStore.isAuthenticated) {
-    const userRoles = authStore.userRoles
+    const userPermissions = authStore.userPermissions
 
-    // 检查是否需要添加动态路由（根据当前用户的角色）
-    if (!hasRolesRoutesAdded(userRoles)) {
+    // 检查是否需要添加动态路由（根据当前用户的权限）
+    if (!hasPermissionsRoutesAdded(userPermissions)) {
       addDynamicRoutes()
       // 重新导航到目标路由，让路由系统重新匹配
-      next({path: to.path, replace: true })
+      next({ path: to.path, replace: true })
       return
     }
 
-    // 检查角色权限（支持多角色，只要有一个角色匹配即可）
-    const routeRoles = to.meta.roles as string[] | undefined
-    if (routeRoles && routeRoles.length > 0) {
-      const hasPermission = userRoles.some((role) => routeRoles.includes(role))
+    // 检查权限（路由需要特定权限才能访问）
+    const requiredPermission = to.meta.permission as string | undefined
+    if (requiredPermission) {
+      const hasPermission = userPermissions.includes(requiredPermission)
 
       if (!hasPermission) {
-        // 没有权限，跳转到主要角色的首页
-        const defaultRoute = getDefaultRouteByRole(authStore.userRole ?? null)
+        // 没有权限，跳转到默认首页
+        const defaultRoute = getDefaultRouteByPermissions(userPermissions) 
+          || getDefaultRouteByRole(authStore.userRole ?? null)
         next({ name: defaultRoute })
         return
       }
     }
 
     next()
-  }
-  else
-  {
-    next({
-      name: 'login',
-      query: { redirect: to.fullPath },
-    })
-    return
+  } else {
+    // 未登录，检查是否需要认证
+    if (to.meta.requiresAuth) {
+      next({
+        name: 'login',
+        query: { redirect: to.fullPath },
+      })
+      return
+    }
+    next()
   }
 })
 

@@ -8,10 +8,14 @@ import com.ccs.ipc.common.util.PasswordUtil;
 import com.ccs.ipc.dto.ChangePasswordRequest;
 import com.ccs.ipc.dto.LoginResponse;
 import com.ccs.ipc.dto.UpdateUserRequest;
+import com.ccs.ipc.entity.SysPermission;
 import com.ccs.ipc.entity.SysRole;
+import com.ccs.ipc.entity.SysRolePermission;
 import com.ccs.ipc.entity.SysUser;
 import com.ccs.ipc.entity.SysUserRole;
 import com.ccs.ipc.mapper.SysUserMapper;
+import com.ccs.ipc.service.ISysPermissionService;
+import com.ccs.ipc.service.ISysRolePermissionService;
 import com.ccs.ipc.service.ISysRoleService;
 import com.ccs.ipc.service.ISysUserRoleService;
 import com.ccs.ipc.service.ISysUserService;
@@ -43,6 +47,12 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
     @Autowired
     private ISysRoleService sysRoleService;
 
+    @Autowired
+    private ISysRolePermissionService sysRolePermissionService;
+
+    @Autowired
+    private ISysPermissionService sysPermissionService;
+
     @Override
     public LoginResponse login(String username, String password) {
         LambdaQueryWrapper<SysUser> queryWrapper = new LambdaQueryWrapper<>();
@@ -70,12 +80,16 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
         // 查询用户角色列表
         List<String> roleCodes = getUserRoleCodes(user.getId());
 
+        // 查询用户权限列表
+        List<String> permissionCodes = getUserPermissionCodes(user.getId());
+
         LoginResponse response = new LoginResponse();
         response.setToken(token);
         response.setUserId(user.getId());
         response.setUsername(user.getUsername());
         response.setRealName(user.getRealName());
         response.setRoles(roleCodes);
+        response.setPermissions(permissionCodes);
 
         return response;
     }
@@ -181,6 +195,54 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
         // 提取角色编码
         return roles.stream()
                 .map(SysRole::getRoleCode)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * 获取用户权限编码列表
+     * 通过用户 -> 角色 -> 权限的关联关系查询
+     *
+     * @param userId 用户ID
+     * @return 权限编码列表，如果用户没有权限则返回空列表
+     */
+    private List<String> getUserPermissionCodes(Long userId) {
+        // 1. 查询用户角色关联
+        LambdaQueryWrapper<SysUserRole> userRoleWrapper = new LambdaQueryWrapper<>();
+        userRoleWrapper.eq(SysUserRole::getUserId, userId);
+        List<SysUserRole> userRoles = sysUserRoleService.list(userRoleWrapper);
+
+        if (userRoles == null || userRoles.isEmpty()) {
+            return new java.util.ArrayList<>();
+        }
+
+        // 2. 获取所有角色ID
+        List<Long> roleIds = userRoles.stream()
+                .map(SysUserRole::getRoleId)
+                .collect(Collectors.toList());
+
+        // 3. 查询角色权限关联
+        LambdaQueryWrapper<SysRolePermission> rolePermissionWrapper = new LambdaQueryWrapper<>();
+        rolePermissionWrapper.in(SysRolePermission::getRoleId, roleIds);
+        List<SysRolePermission> rolePermissions = sysRolePermissionService.list(rolePermissionWrapper);
+
+        if (rolePermissions == null || rolePermissions.isEmpty()) {
+            return new java.util.ArrayList<>();
+        }
+
+        // 4. 获取所有权限ID
+        List<Long> permissionIds = rolePermissions.stream()
+                .map(SysRolePermission::getPermissionId)
+                .distinct()
+                .collect(Collectors.toList());
+
+        // 5. 批量查询权限信息
+        List<SysPermission> permissions = sysPermissionService.listByIds(permissionIds);
+
+        // 6. 提取权限编码（返回菜单权限和路由权限，类型为1和4）
+        return permissions.stream()
+                .filter(p -> p.getPermissionType() != null && (p.getPermissionType() == 1 || p.getPermissionType() == 4))
+                .map(SysPermission::getPermissionCode)
+                .distinct()
                 .collect(Collectors.toList());
     }
 }
