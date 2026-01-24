@@ -1,4 +1,4 @@
-package com.ccs.ipc.dto;
+package com.ccs.ipc.dto.roledto;
 
 import jakarta.validation.constraints.NotBlank;
 import lombok.Data;

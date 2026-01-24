@@ -1,8 +1,8 @@
 package com.ccs.ipc.service;
 
-import com.ccs.ipc.dto.AccessLogListRequest;
-import com.ccs.ipc.dto.AccessLogListResponse;
-import com.ccs.ipc.dto.AccessLogResponse;
+import com.ccs.ipc.dto.logdto.AccessLogListRequest;
+import com.ccs.ipc.dto.logdto.AccessLogListResponse;
+import com.ccs.ipc.dto.logdto.AccessLogResponse;
 import com.ccs.ipc.entity.SysAccessLog;
 import com.baomidou.mybatisplus.extension.service.IService;
 

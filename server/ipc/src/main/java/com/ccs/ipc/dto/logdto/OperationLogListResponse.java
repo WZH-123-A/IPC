@@ -1,22 +1,22 @@
-package com.ccs.ipc.dto;
+package com.ccs.ipc.dto.logdto;
 
 import lombok.Data;
 
 import java.util.List;
 
 /**
- * 访问日志列表响应DTO
+ * 操作日志列表响应DTO
  *
  * @author WZH
  * @since 2026-01-23
  */
 @Data
-public class AccessLogListResponse {
+public class OperationLogListResponse {
 
     /**
      * 数据列表
      */
-    private List<AccessLogResponse> records;
+    private List<OperationLogResponse> records;
 
     /**
      * 总记录数

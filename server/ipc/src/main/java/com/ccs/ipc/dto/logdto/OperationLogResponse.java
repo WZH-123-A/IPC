@@ -1,17 +1,17 @@
-package com.ccs.ipc.dto;
+package com.ccs.ipc.dto.logdto;
 
 import lombok.Data;
 
 import java.time.LocalDateTime;
 
 /**
- * 访问日志响应DTO
+ * 操作日志响应DTO
  *
  * @author WZH
  * @since 2026-01-23
  */
 @Data
-public class AccessLogResponse {
+public class OperationLogResponse {
 
     /**
      * 日志ID
@@ -29,6 +29,21 @@ public class AccessLogResponse {
     private String username;
 
     /**
+     * 操作类型（如：登录、查询、新增、修改、删除）
+     */
+    private String operationType;
+
+    /**
+     * 操作模块
+     */
+    private String operationModule;
+
+    /**
+     * 操作描述
+     */
+    private String operationDesc;
+
+    /**
      * 请求方法（GET/POST等）
      */
     private String requestMethod;
@@ -44,6 +59,11 @@ public class AccessLogResponse {
     private String requestParams;
 
     /**
+     * 响应数据
+     */
+    private String responseData;
+
+    /**
      * IP地址
      */
     private String ipAddress;
@@ -54,9 +74,14 @@ public class AccessLogResponse {
     private String userAgent;
 
     /**
-     * HTTP响应状态码
+     * 操作状态：0-失败 1-成功
      */
-    private Integer responseStatus;
+    private Byte status;
+
+    /**
+     * 错误信息
+     */
+    private String errorMsg;
 
     /**
      * 执行时间（毫秒）

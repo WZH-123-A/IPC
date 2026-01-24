@@ -1,6 +1,7 @@
 package com.ccs.ipc.service;
 
-import com.ccs.ipc.dto.*;
+import com.ccs.ipc.dto.auth.LoginResponse;
+import com.ccs.ipc.dto.userdto.*;
 import com.ccs.ipc.entity.SysUser;
 import com.baomidou.mybatisplus.extension.service.IService;
 

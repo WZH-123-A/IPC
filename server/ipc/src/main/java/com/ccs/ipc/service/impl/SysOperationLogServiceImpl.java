@@ -2,9 +2,9 @@ package com.ccs.ipc.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.ccs.ipc.dto.OperationLogListRequest;
-import com.ccs.ipc.dto.OperationLogListResponse;
-import com.ccs.ipc.dto.OperationLogResponse;
+import com.ccs.ipc.dto.logdto.OperationLogListRequest;
+import com.ccs.ipc.dto.logdto.OperationLogListResponse;
+import com.ccs.ipc.dto.logdto.OperationLogResponse;
 import com.ccs.ipc.entity.SysOperationLog;
 import com.ccs.ipc.mapper.SysOperationLogMapper;
 import com.ccs.ipc.service.ISysOperationLogService;

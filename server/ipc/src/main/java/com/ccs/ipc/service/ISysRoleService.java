@@ -1,7 +1,7 @@
 package com.ccs.ipc.service;
 
-import com.ccs.ipc.dto.CreateRoleRequest;
-import com.ccs.ipc.dto.UpdateRoleRequest;
+import com.ccs.ipc.dto.roledto.CreateRoleRequest;
+import com.ccs.ipc.dto.roledto.UpdateRoleRequest;
 import com.ccs.ipc.entity.SysRole;
 import com.baomidou.mybatisplus.extension.service.IService;
 

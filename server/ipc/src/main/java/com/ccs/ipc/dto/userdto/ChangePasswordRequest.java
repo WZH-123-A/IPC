@@ -1,4 +1,4 @@
-package com.ccs.ipc.dto;
+package com.ccs.ipc.dto.userdto;
 
 import com.ccs.ipc.common.annotation.Sensitive;
 import jakarta.validation.constraints.NotBlank;

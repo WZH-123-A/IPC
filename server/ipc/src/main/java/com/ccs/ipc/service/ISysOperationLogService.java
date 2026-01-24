@@ -1,8 +1,8 @@
 package com.ccs.ipc.service;
 
-import com.ccs.ipc.dto.OperationLogListRequest;
-import com.ccs.ipc.dto.OperationLogListResponse;
-import com.ccs.ipc.dto.OperationLogResponse;
+import com.ccs.ipc.dto.logdto.OperationLogListRequest;
+import com.ccs.ipc.dto.logdto.OperationLogListResponse;
+import com.ccs.ipc.dto.logdto.OperationLogResponse;
 import com.ccs.ipc.entity.SysOperationLog;
 import com.baomidou.mybatisplus.extension.service.IService;
 

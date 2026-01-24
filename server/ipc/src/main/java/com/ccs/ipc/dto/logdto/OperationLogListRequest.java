@@ -1,4 +1,4 @@
-package com.ccs.ipc.dto;
+package com.ccs.ipc.dto.logdto;
 
 import lombok.Data;
 import org.springframework.format.annotation.DateTimeFormat;

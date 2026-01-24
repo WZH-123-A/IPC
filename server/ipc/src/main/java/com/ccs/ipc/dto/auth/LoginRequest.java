@@ -1,4 +1,4 @@
-package com.ccs.ipc.dto;
+package com.ccs.ipc.dto.auth;
 
 import com.ccs.ipc.common.annotation.Sensitive;
 import com.ccs.ipc.common.annotation.UsernameField;

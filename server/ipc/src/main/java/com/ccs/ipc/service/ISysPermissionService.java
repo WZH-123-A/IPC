@@ -1,8 +1,8 @@
 package com.ccs.ipc.service;
 
-import com.ccs.ipc.dto.CreatePermissionRequest;
-import com.ccs.ipc.dto.PermissionTreeNode;
-import com.ccs.ipc.dto.UpdatePermissionRequest;
+import com.ccs.ipc.dto.permissiondto.CreatePermissionRequest;
+import com.ccs.ipc.dto.permissiondto.PermissionTreeNode;
+import com.ccs.ipc.dto.permissiondto.UpdatePermissionRequest;
 import com.ccs.ipc.entity.SysPermission;
 import com.baomidou.mybatisplus.extension.service.IService;
 
