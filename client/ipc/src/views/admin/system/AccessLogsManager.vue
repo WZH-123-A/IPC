@@ -4,6 +4,7 @@
     title="访问日志管理"
     :show-add-button="false"
     :show-selection="true"
+    delete-permission="system:access-log:delete"
     @search="handleSearch"
     @delete="(row) => handleDelete(row as unknown as AccessLog)"
     @selection-change="handleSelectionChange"
@@ -61,6 +62,7 @@
       </el-form-item>
       <el-form-item>
         <el-button
+          v-permission="'system:access-log:batch-delete'"
           type="danger"
           :disabled="!baseRef?.selectedRows || baseRef.selectedRows.length === 0"
           @click="handleBatchDelete"
@@ -99,12 +101,24 @@
 
     <!-- 自定义操作按钮 -->
     <template #actions="{ row }">
-      <el-button type="primary" link size="small" @click="handleView(row as AccessLog)"
-        >查看详情</el-button
+      <el-button 
+        v-permission="'system:access-log:view'" 
+        type="primary" 
+        link 
+        size="small" 
+        @click="handleView(row as AccessLog)"
       >
-      <el-button type="danger" link size="small" @click="handleDelete(row as AccessLog)"
-        >删除</el-button
+        查看详情
+      </el-button>
+      <el-button 
+        v-permission="'system:access-log:delete'" 
+        type="danger" 
+        link 
+        size="small" 
+        @click="handleDelete(row as AccessLog)"
       >
+        删除
+      </el-button>
     </template>
   </BaseManageView>
 

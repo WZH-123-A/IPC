@@ -18,7 +18,9 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -124,14 +126,40 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole> impl
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void assignPermissions(Long roleId, List<Long> permissionIds) {
-        // 删除原有权限
-        LambdaQueryWrapper<SysRolePermission> deleteWrapper = new LambdaQueryWrapper<>();
-        deleteWrapper.eq(SysRolePermission::getRoleId, roleId);
-        sysRolePermissionService.remove(deleteWrapper);
+        // 查询该角色现有的权限ID列表
+        LambdaQueryWrapper<SysRolePermission> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(SysRolePermission::getRoleId, roleId);
+        List<SysRolePermission> existingRolePermissions = sysRolePermissionService.list(queryWrapper);
+        Set<Long> existingPermissionIds = existingRolePermissions.stream()
+                .map(SysRolePermission::getPermissionId)
+                .collect(Collectors.toSet());
 
-        // 添加新权限
-        if (permissionIds != null && !permissionIds.isEmpty()) {
-            List<SysRolePermission> rolePermissions = permissionIds.stream()
+        // 处理空列表情况，使用 HashSet 提高查找效率
+        Set<Long> newPermissionIds = (permissionIds != null && !permissionIds.isEmpty()) 
+                ? new HashSet<>(permissionIds) 
+                : new HashSet<>();
+
+        // 计算需要删除的权限（现有权限 - 新权限）
+        List<Long> toDeleteIds = existingPermissionIds.stream()
+                .filter(id -> !newPermissionIds.contains(id))
+                .collect(Collectors.toList());
+
+        // 计算需要新增的权限（新权限 - 现有权限）
+        List<Long> toAddIds = newPermissionIds.stream()
+                .filter(id -> !existingPermissionIds.contains(id))
+                .collect(Collectors.toList());
+
+        // 批量删除需要删除的权限
+        if (!toDeleteIds.isEmpty()) {
+            LambdaQueryWrapper<SysRolePermission> deleteWrapper = new LambdaQueryWrapper<>();
+            deleteWrapper.eq(SysRolePermission::getRoleId, roleId)
+                    .in(SysRolePermission::getPermissionId, toDeleteIds);
+            sysRolePermissionService.remove(deleteWrapper);
+        }
+
+        // 批量添加需要新增的权限
+        if (!toAddIds.isEmpty()) {
+            List<SysRolePermission> rolePermissions = toAddIds.stream()
                     .map(permissionId -> {
                         SysRolePermission rolePermission = new SysRolePermission();
                         rolePermission.setRoleId(roleId);

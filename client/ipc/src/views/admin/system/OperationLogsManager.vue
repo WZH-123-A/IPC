@@ -4,6 +4,7 @@
     title="操作日志管理"
     :show-add-button="false"
     :show-selection="true"
+    delete-permission="system:operation-log:delete"
     @search="handleSearch"
     @delete="(row) => handleDelete(row as unknown as OperationLog)"
     @selection-change="handleSelectionChange"
@@ -52,6 +53,7 @@
       </el-form-item>
       <el-form-item>
         <el-button
+          v-permission="'system:operation-log:batch-delete'"
           type="danger"
           :disabled="!baseRef?.selectedRows || baseRef.selectedRows.length === 0"
           @click="handleBatchDelete"
@@ -99,12 +101,24 @@
 
     <!-- 自定义操作按钮 -->
     <template #actions="{ row }">
-      <el-button type="primary" link size="small" @click="handleView(row as OperationLog)"
-        >查看详情</el-button
+      <el-button 
+        v-permission="'system:operation-log:view'" 
+        type="primary" 
+        link 
+        size="small" 
+        @click="handleView(row as OperationLog)"
       >
-      <el-button type="danger" link size="small" @click="handleDelete(row as OperationLog)"
-        >删除</el-button
+        查看详情
+      </el-button>
+      <el-button 
+        v-permission="'system:operation-log:delete'" 
+        type="danger" 
+        link 
+        size="small" 
+        @click="handleDelete(row as OperationLog)"
       >
+        删除
+      </el-button>
     </template>
   </BaseManageView>
 

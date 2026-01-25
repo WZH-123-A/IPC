@@ -15,7 +15,14 @@
         <el-form-item>
           <el-button type="primary" @click="handleSearch">查询</el-button>
           <el-button @click="handleReset">重置</el-button>
-          <el-button type="primary" @click="handleAdd" v-if="showAddButton">新增</el-button>
+          <el-button 
+            v-permission="addPermission" 
+            type="primary" 
+            @click="handleAdd" 
+            v-if="showAddButton"
+          >
+            新增
+          </el-button>
         </el-form-item>
       </el-form>
 
@@ -35,8 +42,24 @@
         <el-table-column label="操作" width="200" fixed="right" v-if="showActions">
           <template #default="{ row }">
             <slot name="actions" :row="row">
-              <el-button type="primary" link size="small" @click="handleEdit(row)">编辑</el-button>
-              <el-button type="danger" link size="small" @click="handleDelete(row)">删除</el-button>
+              <el-button 
+                v-permission="editPermission" 
+                type="primary" 
+                link 
+                size="small" 
+                @click="handleEdit(row)"
+              >
+                编辑
+              </el-button>
+              <el-button 
+                v-permission="deletePermission" 
+                type="danger" 
+                link 
+                size="small" 
+                @click="handleDelete(row)"
+              >
+                删除
+              </el-button>
             </slot>
           </template>
         </el-table-column>
@@ -82,6 +105,9 @@ interface Props {
   showActions?: boolean
   showSelection?: boolean
   showPagination?: boolean
+  addPermission?: string
+  editPermission?: string
+  deletePermission?: string
 }
 
 withDefaults(defineProps<Props>(), {
@@ -170,12 +196,13 @@ const handleDialogClose = () => {
 
 const handleSizeChange = (size: number) => {
   pagination.size = size
-  handleSearch()
+  pagination.current = 1 // 改变每页数量时重置到第一页
+  emit('search', searchForm)
 }
 
 const handleCurrentChange = (current: number) => {
   pagination.current = current
-  handleSearch()
+  emit('search', searchForm) // 直接触发搜索，不重置页码
 }
 
 const handleSelectionChange = (selection: Record<string, unknown>[]) => {

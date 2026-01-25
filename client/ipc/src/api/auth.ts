@@ -1,4 +1,5 @@
 import request, { type ApiResponse } from './request'
+import type { PermissionTreeNode } from './admin/permission'
 
 // 登录参数接口
 export interface LoginParams {
@@ -69,4 +70,20 @@ export const getUserInfoApi = async (): Promise<UserInfo> => {
 export const refreshTokenApi = async (): Promise<string> => {
   const response = await request.post<ApiResponse<{ token: string }>>('/auth/refresh')
   return response.data.data.token
+}
+
+/**
+ * 获取当前用户的菜单权限树
+ */
+export const getCurrentUserMenusApi = async (): Promise<PermissionTreeNode[]> => {
+  const response = await request.get<ApiResponse<PermissionTreeNode[]>>('/auth/menus')
+  return response.data.data
+}
+
+/**
+ * 获取当前用户的按钮权限列表
+ */
+export const getCurrentUserButtonsApi = async (): Promise<string[]> => {
+  const response = await request.get<ApiResponse<string[]>>('/auth/buttons')
+  return response.data.data
 }

@@ -4,6 +4,9 @@
     title="用户管理"
     :show-add-button="true"
     :show-selection="false"
+    add-permission="system:user:add"
+    edit-permission="system:user:edit"
+    delete-permission="system:user:delete"
     @search="handleSearch"
     @add="handleAdd"
     @edit="(row) => handleEdit(row as unknown as User)"
@@ -55,11 +58,33 @@
 
     <!-- 自定义操作按钮 -->
     <template #actions="{ row }">
-      <el-button type="primary" link size="small" @click="handleEdit(row as User)">编辑</el-button>
-      <el-button type="warning" link size="small" @click="handleResetPassword(row as User)"
-        >重置密码</el-button
+      <el-button 
+        v-permission="'system:user:edit'" 
+        type="primary" 
+        link 
+        size="small" 
+        @click="handleEdit(row as User)"
       >
-      <el-button type="danger" link size="small" @click="handleDelete(row as User)">删除</el-button>
+        编辑
+      </el-button>
+      <el-button 
+        v-permission="'system:user:reset-password'" 
+        type="warning" 
+        link 
+        size="small" 
+        @click="handleResetPassword(row as User)"
+      >
+        重置密码
+      </el-button>
+      <el-button 
+        v-permission="'system:user:delete'" 
+        type="danger" 
+        link 
+        size="small" 
+        @click="handleDelete(row as User)"
+      >
+        删除
+      </el-button>
     </template>
 
     <!-- 自定义对话框表单 -->

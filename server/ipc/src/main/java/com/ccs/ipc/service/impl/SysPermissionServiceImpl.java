@@ -8,15 +8,22 @@ import com.ccs.ipc.dto.permissiondto.PermissionTreeNode;
 import com.ccs.ipc.dto.permissiondto.SysPermissionResponse;
 import com.ccs.ipc.dto.permissiondto.UpdatePermissionRequest;
 import com.ccs.ipc.entity.SysPermission;
+import com.ccs.ipc.entity.SysRolePermission;
+import com.ccs.ipc.entity.SysUserRole;
 import com.ccs.ipc.mapper.SysPermissionMapper;
 import com.ccs.ipc.service.ISysPermissionService;
+import com.ccs.ipc.service.ISysRolePermissionService;
+import com.ccs.ipc.service.ISysUserRoleService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.springframework.beans.BeanUtils;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * <p>
@@ -28,6 +35,12 @@ import java.util.List;
  */
 @Service
 public class SysPermissionServiceImpl extends ServiceImpl<SysPermissionMapper, SysPermission> implements ISysPermissionService {
+
+    @Autowired
+    private ISysUserRoleService sysUserRoleService;
+
+    @Autowired
+    private ISysRolePermissionService sysRolePermissionService;
 
     @Override
     public List<PermissionTreeNode> getPermissionTree(Byte permissionType) {
@@ -280,5 +293,85 @@ public class SysPermissionServiceImpl extends ServiceImpl<SysPermissionMapper, S
                 }
             }
         }
+    }
+
+    @Override
+    public List<PermissionTreeNode> getUserMenuTree(Long userId) {
+        // 1. 获取用户拥有的所有权限ID
+        Set<Long> userPermissionIds = getUserPermissionIds(userId);
+        
+        if (userPermissionIds.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        LambdaQueryWrapper<SysPermission> menuAndButtonQueryWrapper = new LambdaQueryWrapper<>();
+        menuAndButtonQueryWrapper.in(SysPermission::getPermissionType, 1, 2)
+                .eq(SysPermission::getIsDeleted, 0)
+                .in(SysPermission::getId, userPermissionIds);
+        menuAndButtonQueryWrapper.orderByAsc(SysPermission::getSort);
+        List<SysPermission> menuAndButtonPermissions = this.list(menuAndButtonQueryWrapper);
+        
+        // 5. 构建权限树（包含按钮权限作为子节点）
+        return buildTree(menuAndButtonPermissions, 248L);
+    }
+
+    @Override
+    public List<String> getUserButtonPermissions(Long userId) {
+        // 1. 获取用户拥有的所有权限ID
+        Set<Long> userPermissionIds = getUserPermissionIds(userId);
+        
+        if (userPermissionIds.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        // 2. 查询所有按钮权限（类型为2）
+        LambdaQueryWrapper<SysPermission> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(SysPermission::getPermissionType, 2)
+                .eq(SysPermission::getIsDeleted, 0)
+                .in(SysPermission::getId, userPermissionIds);
+        queryWrapper.orderByAsc(SysPermission::getSort);
+
+        List<SysPermission> buttonPermissions = this.list(queryWrapper);
+        
+        // 3. 提取权限编码
+        return buttonPermissions.stream()
+                .map(SysPermission::getPermissionCode)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * 获取用户拥有的所有权限ID（通过用户 -> 角色 -> 权限的关联关系）
+     *
+     * @param userId 用户ID
+     * @return 权限ID集合
+     */
+    private Set<Long> getUserPermissionIds(Long userId) {
+        // 1. 查询用户角色关联
+        LambdaQueryWrapper<SysUserRole> userRoleWrapper = new LambdaQueryWrapper<>();
+        userRoleWrapper.eq(SysUserRole::getUserId, userId);
+        List<SysUserRole> userRoles = sysUserRoleService.list(userRoleWrapper);
+
+        if (userRoles == null || userRoles.isEmpty()) {
+            return java.util.Collections.emptySet();
+        }
+
+        // 2. 获取所有角色ID
+        List<Long> roleIds = userRoles.stream()
+                .map(SysUserRole::getRoleId)
+                .collect(Collectors.toList());
+
+        // 3. 查询角色权限关联
+        LambdaQueryWrapper<SysRolePermission> rolePermissionWrapper = new LambdaQueryWrapper<>();
+        rolePermissionWrapper.in(SysRolePermission::getRoleId, roleIds);
+        List<SysRolePermission> rolePermissions = sysRolePermissionService.list(rolePermissionWrapper);
+
+        if (rolePermissions == null || rolePermissions.isEmpty()) {
+            return java.util.Collections.emptySet();
+        }
+
+        // 4. 获取所有权限ID并去重
+        return rolePermissions.stream()
+                .map(SysRolePermission::getPermissionId)
+                .collect(Collectors.toSet());
     }
 }

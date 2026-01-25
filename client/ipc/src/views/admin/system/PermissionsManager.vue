@@ -4,7 +4,7 @@
       <template #header>
         <div class="card-header">
           <span>权限管理</span>
-          <el-button type="primary" @click="handleAdd">新增权限</el-button>
+          <el-button v-permission="'system:permission:add'" type="primary" @click="handleAdd">新增权限</el-button>
         </div>
       </template>
 
@@ -23,13 +23,33 @@
               {{ getPermissionTypeName(data.permissionType) }}
             </el-tag>
             <div class="node-actions">
-              <el-button type="primary" link size="small" @click="handleAddChild(data)"
-                >添加子权限</el-button
+              <el-button 
+                v-permission="'system:permission:add'" 
+                type="primary" 
+                link 
+                size="small" 
+                @click="handleAddChild(data)"
               >
-              <el-button type="primary" link size="small" @click="handleEdit(data)">编辑</el-button>
-              <el-button type="danger" link size="small" @click="handleDelete(data)"
-                >删除</el-button
+                添加子权限
+              </el-button>
+              <el-button 
+                v-permission="'system:permission:edit'" 
+                type="primary" 
+                link 
+                size="small" 
+                @click="handleEdit(data)"
               >
+                编辑
+              </el-button>
+              <el-button 
+                v-permission="'system:permission:delete'" 
+                type="danger" 
+                link 
+                size="small" 
+                @click="handleDelete(data)"
+              >
+                删除
+              </el-button>
             </div>
           </div>
         </template>

@@ -4,6 +4,9 @@
     title="角色管理"
     :show-add-button="true"
     :show-selection="false"
+    add-permission="system:role:add"
+    edit-permission="system:role:edit"
+    delete-permission="system:role:delete"
     @search="handleSearch"
     @add="handleAdd"
     @edit="(row) => handleEdit(row as unknown as Role)"
@@ -31,11 +34,33 @@
 
     <!-- 自定义操作按钮 -->
     <template #actions="{ row }">
-      <el-button type="primary" link size="small" @click="handleEdit(row as Role)">编辑</el-button>
-      <el-button type="warning" link size="small" @click="handleAssignPermission(row as Role)"
-        >分配权限</el-button
+      <el-button 
+        v-permission="'system:role:edit'" 
+        type="primary" 
+        link 
+        size="small" 
+        @click="handleEdit(row as Role)"
       >
-      <el-button type="danger" link size="small" @click="handleDelete(row as Role)">删除</el-button>
+        编辑
+      </el-button>
+      <el-button 
+        v-permission="'system:role:assign'" 
+        type="warning" 
+        link 
+        size="small" 
+        @click="handleAssignPermission(row as Role)"
+      >
+        分配权限
+      </el-button>
+      <el-button 
+        v-permission="'system:role:delete'" 
+        type="danger" 
+        link 
+        size="small" 
+        @click="handleDelete(row as Role)"
+      >
+        删除
+      </el-button>
     </template>
 
     <!-- 自定义对话框表单 -->
@@ -76,8 +101,8 @@
       check-strictly
     />
     <template #footer>
-      <el-button @click="permissionDialogVisible = false">取消</el-button>
-      <el-button type="primary" @click="handleAssignPermissionSubmit">确定</el-button>
+      <el-button @click="permissionDialogVisible = false" :disabled="assignPermissionLoading">取消</el-button>
+      <el-button type="primary" @click="handleAssignPermissionSubmit" :loading="assignPermissionLoading">确定</el-button>
     </template>
   </el-dialog>
 </template>
@@ -107,6 +132,7 @@ const checkedPermissionIds = ref<number[]>([])
 const permissionDialogVisible = ref(false)
 const currentRoleId = ref<number>(0)
 const isEdit = ref(false)
+const assignPermissionLoading = ref(false)
 
 const formRules = {
   roleCode: [{ required: true, message: '请输入角色编码', trigger: 'blur' }],
@@ -225,6 +251,7 @@ const handleAssignPermissionSubmit = async () => {
   const halfCheckedKeys = permissionTreeRef.value.getHalfCheckedKeys() as number[]
   const allCheckedKeys = [...checkedKeys, ...halfCheckedKeys]
 
+  assignPermissionLoading.value = true
   try {
     const updateParams: UpdateRoleParams = {
       permissionIds: allCheckedKeys,
@@ -232,9 +259,15 @@ const handleAssignPermissionSubmit = async () => {
     await updateRoleApi(currentRoleId.value, updateParams)
     ElMessage.success('分配权限成功')
     permissionDialogVisible.value = false
+    // 重置权限对话框状态
+    handlePermissionDialogClose()
+    // 触发菜单权限刷新事件，以便导航栏实时更新
+    window.dispatchEvent(new CustomEvent('permission-refresh'))
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : '分配权限失败'
     ElMessage.error(message)
+  } finally {
+    assignPermissionLoading.value = false
   }
 }
 

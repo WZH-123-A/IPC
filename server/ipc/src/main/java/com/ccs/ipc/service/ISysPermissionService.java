@@ -66,4 +66,20 @@ public interface ISysPermissionService extends IService<SysPermission> {
      * @return 权限详情
      */
     SysPermissionResponse getPermissionById(Long id);
+
+    /**
+     * 获取用户拥有的菜单权限树
+     *
+     * @param userId 用户ID
+     * @return 菜单权限树
+     */
+    List<PermissionTreeNode> getUserMenuTree(Long userId);
+
+    /**
+     * 获取用户拥有的按钮权限编码列表
+     *
+     * @param userId 用户ID
+     * @return 按钮权限编码列表
+     */
+    List<String> getUserButtonPermissions(Long userId);
 }
