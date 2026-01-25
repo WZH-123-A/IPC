@@ -53,12 +53,18 @@ public class SysPermissionServiceImpl extends ServiceImpl<SysPermissionMapper, S
             throw new ApiException(ResultCode.PERMISSION_CODE_EXISTS.getMessage());
         }
 
+        Long parentId = request.getParentId() != null ? request.getParentId() : 0L;
+        Integer sort = request.getSort() != null ? request.getSort() : 0;
+        
+        // 如果指定的排序值在当前分组内已存在，需要调整排序
+        adjustSortForInsert(parentId, sort);
+
         SysPermission permission = new SysPermission();
         permission.setPermissionCode(request.getPermissionCode());
         permission.setPermissionName(request.getPermissionName());
         permission.setPermissionType(request.getPermissionType());
-        permission.setParentId(request.getParentId() != null ? request.getParentId() : 0L);
-        permission.setSort(request.getSort() != null ? request.getSort() : 0);
+        permission.setParentId(parentId);
+        permission.setSort(sort);
         permission.setIsDeleted((byte) 0);
 
         this.save(permission);
@@ -70,6 +76,25 @@ public class SysPermissionServiceImpl extends ServiceImpl<SysPermissionMapper, S
         SysPermission permission = this.getById(id);
         if (permission == null || (permission.getIsDeleted() != null && permission.getIsDeleted() == 1)) {
             throw new ApiException(ResultCode.PERMISSION_NOT_FOUNT.getMessage());
+        }
+
+        Long oldParentId = permission.getParentId();
+        Integer oldSort = permission.getSort();
+        Long newParentId = request.getParentId() != null ? request.getParentId() : oldParentId;
+        Integer newSort = request.getSort() != null ? request.getSort() : oldSort;
+
+        // 如果修改了父权限ID或排序值，需要调整排序
+        if (!oldParentId.equals(newParentId) || !oldSort.equals(newSort)) {
+            // 先恢复旧位置的排序（如果父权限改变，需要从旧分组中移除）
+            if (!oldParentId.equals(newParentId)) {
+                adjustSortForDelete(oldParentId, oldSort);
+            } else if (!oldSort.equals(newSort)) {
+                // 同一分组内调整排序
+                adjustSortForUpdate(oldParentId, oldSort, newSort, id);
+            }
+            
+            // 调整新位置的排序
+            adjustSortForInsert(newParentId, newSort);
         }
 
         if (StringUtils.hasText(request.getPermissionName())) {
@@ -95,8 +120,16 @@ public class SysPermissionServiceImpl extends ServiceImpl<SysPermissionMapper, S
         if (permission == null || (permission.getIsDeleted() != null && permission.getIsDeleted() == 1)) {
             throw new ApiException(ResultCode.PERMISSION_NOT_FOUNT.getMessage());
         }
+        
+        Long parentId = permission.getParentId();
+        Integer sort = permission.getSort();
+        
+        // 逻辑删除
         permission.setIsDeleted((byte) 1);
         this.updateById(permission);
+        
+        // 调整排序：将 > sort 的权限排序值都 -1
+        adjustSortForDelete(parentId, sort);
     }
 
     @Override
@@ -157,5 +190,95 @@ public class SysPermissionServiceImpl extends ServiceImpl<SysPermissionMapper, S
         SysPermissionResponse response = new SysPermissionResponse();
         BeanUtils.copyProperties(permission, response);
         return response;
+    }
+
+    /**
+     * 调整排序：在指定位置插入新权限时，将 >= sort 的权限排序值都 +1
+     *
+     * @param parentId 父权限ID
+     * @param sort     新的排序值
+     */
+    private void adjustSortForInsert(Long parentId, Integer sort) {
+        LambdaQueryWrapper<SysPermission> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(SysPermission::getParentId, parentId)
+                .ge(SysPermission::getSort, sort)
+                .eq(SysPermission::getIsDeleted, 0);
+        
+        List<SysPermission> permissions = this.list(queryWrapper);
+        if (!permissions.isEmpty()) {
+            for (SysPermission p : permissions) {
+                p.setSort(p.getSort() + 1);
+                this.updateById(p);
+            }
+        }
+    }
+
+    /**
+     * 调整排序：删除权限时，将 > sort 的权限排序值都 -1
+     *
+     * @param parentId 父权限ID
+     * @param sort     被删除的排序值
+     */
+    private void adjustSortForDelete(Long parentId, Integer sort) {
+        LambdaQueryWrapper<SysPermission> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(SysPermission::getParentId, parentId)
+                .gt(SysPermission::getSort, sort)
+                .eq(SysPermission::getIsDeleted, 0);
+        
+        List<SysPermission> permissions = this.list(queryWrapper);
+        if (!permissions.isEmpty()) {
+            for (SysPermission p : permissions) {
+                p.setSort(p.getSort() - 1);
+                this.updateById(p);
+            }
+        }
+    }
+
+    /**
+     * 调整排序：在同一分组内更新排序时，调整其他权限的排序值
+     *
+     * @param parentId 父权限ID
+     * @param oldSort  旧的排序值
+     * @param newSort  新的排序值
+     * @param excludeId 排除的权限ID（当前更新的权限）
+     */
+    private void adjustSortForUpdate(Long parentId, Integer oldSort, Integer newSort, Long excludeId) {
+        if (oldSort.equals(newSort)) {
+            return;
+        }
+
+        if (newSort > oldSort) {
+            // 向后移动：将 (oldSort, newSort] 范围内的权限排序值 -1
+            LambdaQueryWrapper<SysPermission> queryWrapper = new LambdaQueryWrapper<>();
+            queryWrapper.eq(SysPermission::getParentId, parentId)
+                    .gt(SysPermission::getSort, oldSort)
+                    .le(SysPermission::getSort, newSort)
+                    .ne(SysPermission::getId, excludeId)
+                    .eq(SysPermission::getIsDeleted, 0);
+            
+            List<SysPermission> permissions = this.list(queryWrapper);
+            if (!permissions.isEmpty()) {
+                for (SysPermission p : permissions) {
+                    p.setSort(p.getSort() - 1);
+                    this.updateById(p);
+                }
+            }
+        } else {
+            // 向前移动：将 [newSort, oldSort) 范围内的权限排序值 +1
+            LambdaQueryWrapper<SysPermission> queryWrapper = new LambdaQueryWrapper<>();
+            queryWrapper.eq(SysPermission::getParentId, parentId)
+                    .ge(SysPermission::getSort, newSort)
+                    .lt(SysPermission::getSort, oldSort)
+                    .ne(SysPermission::getId, excludeId)
+                    .eq(SysPermission::getIsDeleted, 0);
+            
+            List<SysPermission> permissions = this.list(queryWrapper);
+            if (!permissions.isEmpty()) {
+                for (SysPermission p : permissions) {
+                    p.setSort(p.getSort() + 1);
+                    this.updateById(p);
+                }
+            }
+        }
     }
 }
