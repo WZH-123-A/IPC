@@ -20,12 +20,26 @@ public enum ResultCode {
     PARAM_VALIDATE_ERROR(1001, "参数校验失败"),
     DATA_NOT_FOUND(1002, "数据不存在"),
     DATA_ALREADY_EXISTS(1003, "数据已存在"),
+    PERMISSION_CODE_EXISTS(1004, "权限编码已存在"),
+    PERMISSION_CODE_NOT_FOUNT(1005, "权限编码不存在"),
+    ROLE_CODE_EXISTS(1006, "角色编码已存在"),
+    ROLE_CODE_NOT_FOUNT(1007, "角色编码不存在"),
+    OPERATION_LOG_EXISTS(1008, "操作日志已存在"),
+    OPERATION_LOG_NOT_FOUNT(1009, "操作日志不存在"),
+    ACCESS_LOG_EXISTS(1010, "访问日志已存在"),
+    ACCESS_LOG_NOT_FOUNT(1011, "访问日志不存在"),
+    ROLE_EXISTS(1012, "角色已存在"),
+    ROLE_NOT_FOUNT(1013, "角色不存在"),
+    PERMISSION_EXISTS(1014, "权限已存在"),
+    PERMISSION_NOT_FOUNT(1015, "权限不存在"),
 
     /* ======= 用户模块 2000-2999 ======= */
     USER_NOT_FOUND(2000, "用户不存在"),
     USER_PASSWORD_ERROR(2001, "用户名或密码错误"),
     USER_DISABLED(2002, "用户已被禁用"),
     USER_ALREADY_EXISTS(2003, "用户已存在"),
+    USER_PASSWORD_NOT_DIFFERENT(2004, "新旧密码不能相同"),
+
 
     /* ======= 权限模块 3000-3999 ======= */
     TOKEN_INVALID(3001, "Token 无效"),

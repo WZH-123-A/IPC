@@ -95,7 +95,7 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
     }
 
     @Override
-    public SysUser updateUser(Long userId, UpdateUserRequest request) {
+    public SysUserResponse updateUser(Long userId, UpdateUserRequest request) {
         SysUser user = this.getById(userId);
         
         if (user == null) {
@@ -123,7 +123,7 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
         }
 
         this.updateById(user);
-        return user;
+        return convertToResponse(user);
     }
 
     @Override
@@ -147,7 +147,7 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
         }
 
         if (request.getOldPassword().equals(request.getNewPassword())) {
-            throw new ApiException("新密码不能与旧密码相同");
+            throw new ApiException(ResultCode.USER_PASSWORD_NOT_DIFFERENT.getMessage());
         }
 
         String encodedNewPassword = PasswordUtil.encode(request.getNewPassword());
@@ -248,14 +248,14 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public SysUser createUser(CreateUserRequest request) {
+    public SysUserResponse createUser(CreateUserRequest request) {
         // 检查用户名是否已存在
         LambdaQueryWrapper<SysUser> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.eq(SysUser::getUsername, request.getUsername())
                 .eq(SysUser::getIsDeleted, 0);
         SysUser existUser = this.getOne(queryWrapper);
         if (existUser != null) {
-            throw new ApiException(ResultCode.FAIL.getMessage() + ": 用户名已存在");
+            throw new ApiException(ResultCode.USER_ALREADY_EXISTS.getMessage());
         }
 
         // 创建用户
@@ -275,15 +275,15 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
             assignRoles(user.getId(), request.getRoleIds());
         }
 
-        return user;
+        return convertToResponse(user);
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public SysUser updateUserByAdmin(Long id, UpdateUserRequest request) {
+    public SysUserResponse updateUserByAdmin(Long id, UpdateUserRequest request) {
         SysUser user = this.getById(id);
         if (user == null || (user.getIsDeleted() != null && user.getIsDeleted() == 1)) {
-            throw new ApiException(ResultCode.FAIL.getMessage() + ": 用户不存在");
+            throw new ApiException(ResultCode.USER_NOT_FOUND.getMessage());
         }
 
         // 更新用户信息
@@ -309,14 +309,14 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
             assignRoles(id, request.getRoleIds());
         }
 
-        return user;
+        return convertToResponse(user);
     }
 
     @Override
     public void deleteUser(Long id) {
         SysUser user = this.getById(id);
         if (user == null || (user.getIsDeleted() != null && user.getIsDeleted() == 1)) {
-            throw new ApiException(ResultCode.FAIL.getMessage() + ": 用户不存在");
+            throw new ApiException(ResultCode.USER_NOT_FOUND.getMessage());
         }
         user.setIsDeleted((byte) 1);
         this.updateById(user);
@@ -326,7 +326,7 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
     public void resetPassword(Long id, ResetPasswordRequest request) {
         SysUser user = this.getById(id);
         if (user == null || (user.getIsDeleted() != null && user.getIsDeleted() == 1)) {
-            throw new ApiException(ResultCode.FAIL.getMessage() + ": 用户不存在");
+            throw new ApiException(ResultCode.USER_NOT_FOUND.getMessage());
         }
         user.setPassword(PasswordUtil.encode(request.getPassword()));
         this.updateById(user);
@@ -423,6 +423,10 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
     public SysUserResponse getUserById(Long id)
     {
         SysUser user = this.getById(id);
+        if (user == null)
+        {
+            throw new ApiException(ResultCode.USER_NOT_FOUND.getMessage());
+        }
         return convertToResponse(user);
     }
 

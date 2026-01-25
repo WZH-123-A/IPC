@@ -47,10 +47,6 @@ public class SysUserController {
     @RequirePermission("api:user:detail")
     public Response<SysUserResponse> getUserById(@PathVariable Long id) {
         SysUserResponse response = sysUserService.getUserById(id);
-        if(response == null)
-        {
-            return Response.fail("用户不存在");
-        }
         return Response.success(response);
     }
 
@@ -60,9 +56,9 @@ public class SysUserController {
     @PostMapping
     @RequirePermission("api:user:create")
     @Log(operationType = OperationType.ADD, operationModule = OperationModule.USER, operationDesc = "新增用户")
-    public Response<SysUser> createUser(@Valid @RequestBody CreateUserRequest request) {
-        SysUser user = sysUserService.createUser(request);
-        return Response.success(user);
+    public Response<SysUserResponse> createUser(@Valid @RequestBody CreateUserRequest request) {
+        SysUserResponse response = sysUserService.createUser(request);
+        return Response.success(response);
     }
 
     /**
@@ -71,9 +67,9 @@ public class SysUserController {
     @PutMapping("/{id}")
     @RequirePermission("api:user:update")
     @Log(operationType = OperationType.UPDATE, operationModule = OperationModule.USER, operationDesc = "更新用户")
-    public Response<SysUser> updateUser(@PathVariable Long id, @Valid @RequestBody UpdateUserRequest request) {
-        SysUser user = sysUserService.updateUserByAdmin(id, request);
-        return Response.success(user);
+    public Response<SysUserResponse> updateUser(@PathVariable Long id, @Valid @RequestBody UpdateUserRequest request) {
+        SysUserResponse response = sysUserService.updateUserByAdmin(id, request);
+        return Response.success(response);
     }
 
     /**
@@ -81,11 +77,11 @@ public class SysUserController {
      */
     @PutMapping("/update")
     @Log(operationType = OperationType.UPDATE, operationModule = OperationModule.USER, operationDesc = "更新用户信息")
-    public Response<SysUser> updateCurrentUser(@Valid @RequestBody UpdateUserRequest request, 
+    public Response<SysUserResponse> updateCurrentUser(@Valid @RequestBody UpdateUserRequest request,
                                                 HttpServletRequest httpRequest) {
         Long userId = UserContext.getUserId(httpRequest);
-        SysUser user = sysUserService.updateUser(userId, request);
-        return Response.success(user);
+        SysUserResponse response = sysUserService.updateUser(userId, request);
+        return Response.success(response);
     }
 
     /**

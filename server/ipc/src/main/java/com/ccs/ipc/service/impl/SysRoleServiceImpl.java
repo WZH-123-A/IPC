@@ -1,21 +1,23 @@
 package com.ccs.ipc.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.ccs.ipc.common.exception.ApiException;
 import com.ccs.ipc.common.response.ResultCode;
-import com.ccs.ipc.dto.roledto.CreateRoleRequest;
-import com.ccs.ipc.dto.roledto.UpdateRoleRequest;
+import com.ccs.ipc.dto.roledto.*;
 import com.ccs.ipc.entity.SysRole;
 import com.ccs.ipc.entity.SysRolePermission;
 import com.ccs.ipc.mapper.SysRoleMapper;
 import com.ccs.ipc.service.ISysRolePermissionService;
 import com.ccs.ipc.service.ISysRoleService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -35,14 +37,14 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole> impl
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public SysRole createRole(CreateRoleRequest request) {
+    public SysRoleResponse createRole(CreateRoleRequest request) {
         // 检查角色编码是否已存在
         LambdaQueryWrapper<SysRole> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.eq(SysRole::getRoleCode, request.getRoleCode())
                 .eq(SysRole::getIsDeleted, 0);
         SysRole existRole = this.getOne(queryWrapper);
         if (existRole != null) {
-            throw new ApiException(ResultCode.FAIL.getMessage() + ": 角色编码已存在");
+            throw new ApiException(ResultCode.ROLE_CODE_EXISTS.getMessage());
         }
 
         // 创建角色
@@ -58,15 +60,15 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole> impl
             assignPermissions(role.getId(), request.getPermissionIds());
         }
 
-        return role;
+        return convertToResponse(role);
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public SysRole updateRole(Long id, UpdateRoleRequest request) {
+    public SysRoleResponse updateRole(Long id, UpdateRoleRequest request) {
         SysRole role = this.getById(id);
         if (role == null || (role.getIsDeleted() != null && role.getIsDeleted() == 1)) {
-            throw new ApiException(ResultCode.FAIL.getMessage() + ": 角色不存在");
+            throw new ApiException(ResultCode.ROLE_EXISTS.getMessage());
         }
 
         // 检查角色编码是否与其他角色冲突
@@ -77,7 +79,7 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole> impl
                     .ne(SysRole::getId, id);
             SysRole existRole = this.getOne(queryWrapper);
             if (existRole != null) {
-                throw new ApiException(ResultCode.FAIL.getMessage() + ": 角色编码已存在");
+                throw new ApiException(ResultCode.ROLE_CODE_EXISTS.getMessage());
             }
             role.setRoleCode(request.getRoleCode());
         }
@@ -96,14 +98,14 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole> impl
             assignPermissions(id, request.getPermissionIds());
         }
 
-        return role;
+        return convertToResponse(role);
     }
 
     @Override
     public void deleteRole(Long id) {
         SysRole role = this.getById(id);
         if (role == null || (role.getIsDeleted() != null && role.getIsDeleted() == 1)) {
-            throw new ApiException(ResultCode.FAIL.getMessage() + ": 角色不存在");
+            throw new ApiException(ResultCode.ROLE_NOT_FOUNT.getMessage());
         }
         role.setIsDeleted((byte) 1);
         this.updateById(role);
@@ -139,5 +141,62 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole> impl
                     .collect(Collectors.toList());
             sysRolePermissionService.saveBatch(rolePermissions);
         }
+    }
+
+    @Override
+    public SysRoleListResponse getRoleList(SysRoleListRequest request) {
+        long current = request.getCurrent() != null && request.getCurrent() > 0 ? request.getCurrent() : 1;
+        long size = request.getSize() != null && request.getSize() > 0 ? request.getSize() : 10;
+        Page<SysRole> page = new Page<>(current, size);
+        LambdaQueryWrapper<SysRole> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(SysRole::getIsDeleted, 0);
+
+        if (StringUtils.hasText(request.getRoleCode())) {
+            queryWrapper.like(SysRole::getRoleCode, request.getRoleCode());
+        }
+        if (StringUtils.hasText(request.getRoleName())) {
+            queryWrapper.like(SysRole::getRoleName, request.getRoleName());
+        }
+        queryWrapper.orderByDesc(SysRole::getCreateTime);
+
+        Page<SysRole> result = this.page(page, queryWrapper);
+
+        SysRoleListResponse response = new SysRoleListResponse();
+        response.setTotal(result.getTotal());
+        response.setCurrent(current);
+        response.setSize(size);
+
+        List<SysRoleResponse> responseList = new ArrayList<>();
+        for (SysRole role : result.getRecords()) {
+            responseList.add(convertToResponse(role));
+        }
+        response.setRecords(responseList);
+
+        return response;
+    }
+
+    @Override
+    public List<SysRoleResponse> getAllRoles() {
+        LambdaQueryWrapper<SysRole> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(SysRole::getIsDeleted, 0);
+        List<SysRole> roles = this.list(queryWrapper);
+        return roles.stream()
+                .map(this::convertToResponse)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public SysRoleResponse getRoleById(Long id) {
+        SysRole role = this.getById(id);
+        if (role == null) {
+            throw new ApiException(ResultCode.ROLE_NOT_FOUNT.getMessage());
+        }
+        return convertToResponse(role);
+    }
+
+    private SysRoleResponse convertToResponse(SysRole role) {
+        SysRoleResponse response = new SysRoleResponse();
+        BeanUtils.copyProperties(role, response);
+        return response;
     }
 }

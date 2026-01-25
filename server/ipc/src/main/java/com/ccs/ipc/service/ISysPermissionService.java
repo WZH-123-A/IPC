@@ -2,6 +2,7 @@ package com.ccs.ipc.service;
 
 import com.ccs.ipc.dto.permissiondto.CreatePermissionRequest;
 import com.ccs.ipc.dto.permissiondto.PermissionTreeNode;
+import com.ccs.ipc.dto.permissiondto.SysPermissionResponse;
 import com.ccs.ipc.dto.permissiondto.UpdatePermissionRequest;
 import com.ccs.ipc.entity.SysPermission;
 import com.baomidou.mybatisplus.extension.service.IService;
@@ -32,7 +33,7 @@ public interface ISysPermissionService extends IService<SysPermission> {
      * @param request 创建权限请求
      * @return 创建的权限
      */
-    SysPermission createPermission(CreatePermissionRequest request);
+    SysPermissionResponse createPermission(CreatePermissionRequest request);
 
     /**
      * 更新权限
@@ -41,7 +42,7 @@ public interface ISysPermissionService extends IService<SysPermission> {
      * @param request 更新权限请求
      * @return 更新后的权限
      */
-    SysPermission updatePermission(Long id, UpdatePermissionRequest request);
+    SysPermissionResponse updatePermission(Long id, UpdatePermissionRequest request);
 
     /**
      * 删除权限（逻辑删除）
@@ -49,4 +50,20 @@ public interface ISysPermissionService extends IService<SysPermission> {
      * @param id 权限ID
      */
     void deletePermission(Long id);
+
+    /**
+     * 获取权限列表
+     *
+     * @param permissionType 权限类型（可选）
+     * @return 权限列表
+     */
+    List<SysPermissionResponse> getPermissionList(Byte permissionType);
+
+    /**
+     * 根据ID获取权限详情
+     *
+     * @param id 权限ID
+     * @return 权限详情
+     */
+    SysPermissionResponse getPermissionById(Long id);
 }

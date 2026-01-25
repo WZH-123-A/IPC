@@ -3,6 +3,7 @@ package com.ccs.ipc.interceptor;
 import com.ccs.ipc.common.annotation.RequirePermission;
 import com.ccs.ipc.common.exception.ApiException;
 import com.ccs.ipc.common.response.ResultCode;
+import com.ccs.ipc.common.util.UserContext;
 import com.ccs.ipc.service.ISysUserService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -65,7 +66,7 @@ public class PermissionInterceptor implements HandlerInterceptor {
      */
     private void checkPermission(HttpServletRequest request, String requiredPermission) {
         // 从request中获取用户ID（由JwtAuthInterceptor设置）
-        Long userId = (Long) request.getAttribute("userId");
+        Long userId = UserContext.getUserId(request);
         if (userId == null) {
             throw new ApiException(ResultCode.UNAUTHORIZED.getMessage());
         }

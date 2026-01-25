@@ -104,21 +104,7 @@ public class Response<T> implements Serializable {
         Response<T> response = new Response<>();
 
         Integer failCode;
-        if (ResultCode.UNAUTHORIZED.getMessage().equals(message)) {
-            failCode = ResultCode.UNAUTHORIZED.getCode();
-        } else if (ResultCode.TOKEN_INVALID.getMessage().equals(message)) {
-            failCode = ResultCode.TOKEN_INVALID.getCode();
-        } else if (ResultCode.TOKEN_EXPIRED.getMessage().equals(message)) {
-            failCode = ResultCode.TOKEN_EXPIRED.getCode();
-        } else if (ResultCode.USER_NOT_FOUND.getMessage().equals(message)) {
-            failCode = ResultCode.USER_NOT_FOUND.getCode();
-        } else if (ResultCode.USER_PASSWORD_ERROR.getMessage().equals(message)) {
-            failCode = ResultCode.USER_PASSWORD_ERROR.getCode();
-        } else if (ResultCode.USER_DISABLED.getMessage().equals(message)) {
-            failCode = ResultCode.USER_DISABLED.getCode();
-        } else {
-            failCode = ResultCode.FAIL.getCode();
-        }
+        failCode = getErrorCode(message);
         response.setCode(failCode);
         response.setMessage(message);
         response.setTimestamp(System.currentTimeMillis());
@@ -173,5 +159,84 @@ public class Response<T> implements Serializable {
 
         // 默认返回500
         return HttpStatus.INTERNAL_SERVER_ERROR;
+    }
+
+    /**
+     * 根据错误信息获得错误码
+     *
+     * @param message 错误信息
+     * @return 错误码
+     */
+    public static Integer getErrorCode(String message) {
+        if (message == null) {
+            return ResultCode.FAIL.getCode();
+        }
+        
+        switch (message) {
+            case "操作成功":
+                return ResultCode.SUCCESS.getCode();
+            case "操作失败":
+                return ResultCode.FAIL.getCode();
+            case "请求参数错误":
+                return ResultCode.BAD_REQUEST.getCode();
+            case "请求方法不允许":
+                return ResultCode.METHOD_NOT_ALLOWED.getCode();
+            case "不支持的媒体类型":
+                return ResultCode.UNSUPPORTED_MEDIA_TYPE.getCode();
+            case "未授权":
+                return ResultCode.UNAUTHORIZED.getCode();
+            case "禁止访问":
+                return ResultCode.FORBIDDEN.getCode();
+            case "业务异常":
+                return ResultCode.BUSINESS_ERROR.getCode();
+            case "参数校验失败":
+                return ResultCode.PARAM_VALIDATE_ERROR.getCode();
+            case "数据不存在":
+                return ResultCode.DATA_NOT_FOUND.getCode();
+            case "数据已存在":
+                return ResultCode.DATA_ALREADY_EXISTS.getCode();
+            case "权限编码已存在":
+                return ResultCode.PERMISSION_CODE_EXISTS.getCode();
+            case "权限编码不存在":
+                return ResultCode.PERMISSION_CODE_NOT_FOUNT.getCode();
+            case "角色编码已存在":
+                return ResultCode.ROLE_CODE_EXISTS.getCode();
+            case "角色编码不存在":
+                return ResultCode.ROLE_CODE_NOT_FOUNT.getCode();
+            case "操作日志已存在":
+                return ResultCode.OPERATION_LOG_EXISTS.getCode();
+            case "操作日志不存在":
+                return ResultCode.OPERATION_LOG_NOT_FOUNT.getCode();
+            case "访问日志已存在":
+                return ResultCode.ACCESS_LOG_EXISTS.getCode();
+            case "访问日志不存在":
+                return ResultCode.ACCESS_LOG_NOT_FOUNT.getCode();
+            case "角色已存在":
+                return ResultCode.ROLE_EXISTS.getCode();
+            case "角色不存在":
+                return ResultCode.ROLE_NOT_FOUNT.getCode();
+            case "权限已存在":
+                return ResultCode.PERMISSION_EXISTS.getCode();
+            case "权限不存在":
+                return ResultCode.PERMISSION_NOT_FOUNT.getCode();
+            case "用户不存在":
+                return ResultCode.USER_NOT_FOUND.getCode();
+            case "用户名或密码错误":
+                return ResultCode.USER_PASSWORD_ERROR.getCode();
+            case "用户已被禁用":
+                return ResultCode.USER_DISABLED.getCode();
+            case "用户已存在":
+                return ResultCode.USER_ALREADY_EXISTS.getCode();
+            case "新旧密码不能相同":
+                return ResultCode.USER_PASSWORD_NOT_DIFFERENT.getCode();
+            case "Token 无效":
+                return ResultCode.TOKEN_INVALID.getCode();
+            case "Token 已过期":
+                return ResultCode.TOKEN_EXPIRED.getCode();
+            case "没有操作权限":
+                return ResultCode.NO_PERMISSION.getCode();
+            default:
+                return ResultCode.FAIL.getCode();
+        }
     }
 }

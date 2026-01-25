@@ -5,11 +5,13 @@ import com.ccs.ipc.common.exception.ApiException;
 import com.ccs.ipc.common.response.ResultCode;
 import com.ccs.ipc.dto.permissiondto.CreatePermissionRequest;
 import com.ccs.ipc.dto.permissiondto.PermissionTreeNode;
+import com.ccs.ipc.dto.permissiondto.SysPermissionResponse;
 import com.ccs.ipc.dto.permissiondto.UpdatePermissionRequest;
 import com.ccs.ipc.entity.SysPermission;
 import com.ccs.ipc.mapper.SysPermissionMapper;
 import com.ccs.ipc.service.ISysPermissionService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
@@ -41,14 +43,14 @@ public class SysPermissionServiceImpl extends ServiceImpl<SysPermissionMapper, S
     }
 
     @Override
-    public SysPermission createPermission(CreatePermissionRequest request) {
+    public SysPermissionResponse createPermission(CreatePermissionRequest request) {
         // 检查权限编码是否已存在
         LambdaQueryWrapper<SysPermission> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.eq(SysPermission::getPermissionCode, request.getPermissionCode())
                 .eq(SysPermission::getIsDeleted, 0);
         SysPermission existPermission = this.getOne(queryWrapper);
         if (existPermission != null) {
-            throw new ApiException(ResultCode.FAIL.getMessage() + ": 权限编码已存在");
+            throw new ApiException(ResultCode.PERMISSION_CODE_EXISTS.getMessage());
         }
 
         SysPermission permission = new SysPermission();
@@ -60,14 +62,14 @@ public class SysPermissionServiceImpl extends ServiceImpl<SysPermissionMapper, S
         permission.setIsDeleted((byte) 0);
 
         this.save(permission);
-        return permission;
+        return convertToResponse(permission);
     }
 
     @Override
-    public SysPermission updatePermission(Long id, UpdatePermissionRequest request) {
+    public SysPermissionResponse updatePermission(Long id, UpdatePermissionRequest request) {
         SysPermission permission = this.getById(id);
         if (permission == null || (permission.getIsDeleted() != null && permission.getIsDeleted() == 1)) {
-            throw new ApiException(ResultCode.FAIL.getMessage() + ": 权限不存在");
+            throw new ApiException(ResultCode.PERMISSION_NOT_FOUNT.getMessage());
         }
 
         if (StringUtils.hasText(request.getPermissionName())) {
@@ -84,17 +86,44 @@ public class SysPermissionServiceImpl extends ServiceImpl<SysPermissionMapper, S
         }
 
         this.updateById(permission);
-        return permission;
+        return convertToResponse(permission);
     }
 
     @Override
     public void deletePermission(Long id) {
         SysPermission permission = this.getById(id);
         if (permission == null || (permission.getIsDeleted() != null && permission.getIsDeleted() == 1)) {
-            throw new ApiException(ResultCode.FAIL.getMessage() + ": 权限不存在");
+            throw new ApiException(ResultCode.PERMISSION_NOT_FOUNT.getMessage());
         }
         permission.setIsDeleted((byte) 1);
         this.updateById(permission);
+    }
+
+    @Override
+    public List<SysPermissionResponse> getPermissionList(Byte permissionType){
+        LambdaQueryWrapper<SysPermission> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(SysPermission::getIsDeleted, 0);
+        if (permissionType != null) {
+            queryWrapper.eq(SysPermission::getPermissionType, permissionType);
+        }
+        queryWrapper.orderByAsc(SysPermission::getSort);
+
+        List<SysPermission> permissions = this.list(queryWrapper);
+        List<SysPermissionResponse> responses = new ArrayList<>();
+        for (SysPermission permission : permissions) {
+            responses.add(convertToResponse(permission));
+        }
+
+        return responses;
+    }
+
+    @Override
+    public SysPermissionResponse getPermissionById(Long id) {
+        SysPermission permission = this.getById(id);
+        if (permission == null) {
+            throw new ApiException(ResultCode.PERMISSION_NOT_FOUNT.getMessage());
+        }
+        return convertToResponse(permission);
     }
 
     /**
@@ -122,5 +151,11 @@ public class SysPermissionServiceImpl extends ServiceImpl<SysPermissionMapper, S
         }
 
         return nodes;
+    }
+
+    private SysPermissionResponse convertToResponse(SysPermission  permission) {
+        SysPermissionResponse response = new SysPermissionResponse();
+        BeanUtils.copyProperties(permission, response);
+        return response;
     }
 }

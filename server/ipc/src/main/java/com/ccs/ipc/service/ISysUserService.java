@@ -23,9 +23,17 @@ public interface ISysUserService extends IService<SysUser> {
     LoginResponse login(String username, String password);
 
     /**
+     * 创建用户
+     *
+     * @param request 创建用户请求
+     * @return 创建的用户
+     */
+    SysUserResponse createUser(CreateUserRequest request);
+
+    /**
      * 修改当前用户信息
      */
-    SysUser updateUser(Long userId, UpdateUserRequest request);
+    SysUserResponse updateUser(Long userId, UpdateUserRequest request);
 
     /**
      * 修改密码
@@ -38,21 +46,13 @@ public interface ISysUserService extends IService<SysUser> {
     Long getUserIdByUsername(String username);
 
     /**
-     * 创建用户（管理员功能）
-     *
-     * @param request 创建用户请求
-     * @return 创建的用户
-     */
-    SysUser createUser(CreateUserRequest request);
-
-    /**
-     * 更新用户（管理员功能）
+     * 更新用户
      *
      * @param id      用户ID
      * @param request 更新用户请求
      * @return 更新后的用户
      */
-    SysUser updateUserByAdmin(Long id, UpdateUserRequest request);
+    SysUserResponse updateUserByAdmin(Long id, UpdateUserRequest request);
 
     /**
      * 删除用户（逻辑删除）

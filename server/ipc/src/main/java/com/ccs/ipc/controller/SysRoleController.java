@@ -7,8 +7,7 @@ import com.ccs.ipc.common.annotation.RequirePermission;
 import com.ccs.ipc.common.enums.OperationModule;
 import com.ccs.ipc.common.enums.OperationType;
 import com.ccs.ipc.common.response.Response;
-import com.ccs.ipc.dto.roledto.CreateRoleRequest;
-import com.ccs.ipc.dto.roledto.UpdateRoleRequest;
+import com.ccs.ipc.dto.roledto.*;
 import com.ccs.ipc.entity.SysRole;
 import com.ccs.ipc.service.ISysRoleService;
 import jakarta.validation.Valid;
@@ -37,25 +36,10 @@ public class SysRoleController {
      */
     @GetMapping("/list")
     @RequirePermission("api:role:list")
-    public Response<Page<SysRole>> getRoleList(
-            @RequestParam(defaultValue = "1") Integer current,
-            @RequestParam(defaultValue = "10") Integer size,
-            @RequestParam(required = false) String roleCode,
-            @RequestParam(required = false) String roleName) {
-        Page<SysRole> page = new Page<>(current, size);
-        LambdaQueryWrapper<SysRole> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(SysRole::getIsDeleted, 0);
-        
-        if (StringUtils.hasText(roleCode)) {
-            queryWrapper.like(SysRole::getRoleCode, roleCode);
-        }
-        if (StringUtils.hasText(roleName)) {
-            queryWrapper.like(SysRole::getRoleName, roleName);
-        }
-        queryWrapper.orderByDesc(SysRole::getCreateTime);
-        
-        Page<SysRole> result = sysRoleService.page(page, queryWrapper);
-        return Response.success(result);
+    @Log(operationType = OperationType.QUERY, operationModule = OperationModule.ROLE, operationDesc = "分页查询角色列表")
+    public Response<SysRoleListResponse> getRoleList(SysRoleListRequest request) {
+        SysRoleListResponse response = sysRoleService.getRoleList(request);
+        return Response.success(response);
     }
 
     /**
@@ -63,12 +47,10 @@ public class SysRoleController {
      */
     @GetMapping("/all")
     @RequirePermission("api:role:list")
-    public Response<List<SysRole>> getAllRoles() {
-        LambdaQueryWrapper<SysRole> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(SysRole::getIsDeleted, 0);
-        queryWrapper.orderByAsc(SysRole::getRoleCode);
-        List<SysRole> roles = sysRoleService.list(queryWrapper);
-        return Response.success(roles);
+    @Log(operationType = OperationType.QUERY, operationModule = OperationModule.ROLE, operationDesc = "获取所有角色（不分页）")
+    public Response<List<SysRoleResponse>> getAllRoles() {
+        List<SysRoleResponse> responses = sysRoleService.getAllRoles();
+        return Response.success(responses);
     }
 
     /**
@@ -76,12 +58,10 @@ public class SysRoleController {
      */
     @GetMapping("/{id}")
     @RequirePermission("api:role:detail")
-    public Response<SysRole> getRoleById(@PathVariable Long id) {
-        SysRole role = sysRoleService.getById(id);
-        if (role == null || (role.getIsDeleted() != null && role.getIsDeleted() == 1)) {
-            return Response.fail("角色不存在");
-        }
-        return Response.success(role);
+    @Log(operationType = OperationType.QUERY, operationModule = OperationModule.ROLE, operationDesc = "根据ID获取角色详情")
+    public Response<SysRoleResponse> getRoleById(@PathVariable Long id) {
+        SysRoleResponse response = sysRoleService.getRoleById(id);
+        return Response.success(response);
     }
 
     /**
@@ -89,10 +69,10 @@ public class SysRoleController {
      */
     @PostMapping
     @RequirePermission("api:role:create")
-    @Log(operationType = OperationType.ADD, operationModule = OperationModule.USER, operationDesc = "新增角色")
-    public Response<SysRole> createRole(@Valid @RequestBody CreateRoleRequest request) {
-        SysRole role = sysRoleService.createRole(request);
-        return Response.success(role);
+    @Log(operationType = OperationType.ADD, operationModule = OperationModule.ROLE, operationDesc = "新增角色")
+    public Response<SysRoleResponse> createRole(@Valid @RequestBody CreateRoleRequest request) {
+        SysRoleResponse response = sysRoleService.createRole(request);
+        return Response.success(response);
     }
 
     /**
@@ -100,10 +80,10 @@ public class SysRoleController {
      */
     @PutMapping("/{id}")
     @RequirePermission("api:role:update")
-    @Log(operationType = OperationType.UPDATE, operationModule = OperationModule.USER, operationDesc = "更新角色")
-    public Response<SysRole> updateRole(@PathVariable Long id, @Valid @RequestBody UpdateRoleRequest request) {
-        SysRole role = sysRoleService.updateRole(id, request);
-        return Response.success(role);
+    @Log(operationType = OperationType.UPDATE, operationModule = OperationModule.ROLE, operationDesc = "更新角色")
+    public Response<SysRoleResponse> updateRole(@PathVariable Long id, @Valid @RequestBody UpdateRoleRequest request) {
+        SysRoleResponse response = sysRoleService.updateRole(id, request);
+        return Response.success(response);
     }
 
     /**
@@ -111,7 +91,7 @@ public class SysRoleController {
      */
     @DeleteMapping("/{id}")
     @RequirePermission("api:role:delete")
-    @Log(operationType = OperationType.DELETE, operationModule = OperationModule.USER, operationDesc = "删除角色")
+    @Log(operationType = OperationType.DELETE, operationModule = OperationModule.ROLE, operationDesc = "删除角色")
     public Response<Void> deleteRole(@PathVariable Long id) {
         sysRoleService.deleteRole(id);
         return Response.success();
@@ -122,6 +102,7 @@ public class SysRoleController {
      */
     @GetMapping("/{id}/permissions")
     @RequirePermission("api:role:detail")
+    @Log(operationType = OperationType.QUERY, operationModule = OperationModule.ROLE, operationDesc = "获取角色的权限ID列表")
     public Response<List<Long>> getRolePermissions(@PathVariable Long id) {
         List<Long> permissionIds = sysRoleService.getRolePermissionIds(id);
         return Response.success(permissionIds);

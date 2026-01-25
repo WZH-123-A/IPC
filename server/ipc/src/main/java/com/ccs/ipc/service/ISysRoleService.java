@@ -1,7 +1,6 @@
 package com.ccs.ipc.service;
 
-import com.ccs.ipc.dto.roledto.CreateRoleRequest;
-import com.ccs.ipc.dto.roledto.UpdateRoleRequest;
+import com.ccs.ipc.dto.roledto.*;
 import com.ccs.ipc.entity.SysRole;
 import com.baomidou.mybatisplus.extension.service.IService;
 
@@ -23,7 +22,7 @@ public interface ISysRoleService extends IService<SysRole> {
      * @param request 创建角色请求
      * @return 创建的角色
      */
-    SysRole createRole(CreateRoleRequest request);
+    SysRoleResponse createRole(CreateRoleRequest request);
 
     /**
      * 更新角色
@@ -32,7 +31,7 @@ public interface ISysRoleService extends IService<SysRole> {
      * @param request 更新角色请求
      * @return 更新后的角色
      */
-    SysRole updateRole(Long id, UpdateRoleRequest request);
+    SysRoleResponse updateRole(Long id, UpdateRoleRequest request);
 
     /**
      * 删除角色（逻辑删除）
@@ -56,4 +55,25 @@ public interface ISysRoleService extends IService<SysRole> {
      * @param permissionIds 权限ID列表
      */
     void assignPermissions(Long roleId, List<Long> permissionIds);
+
+    /**
+     * 分页查询角色列表
+     *
+     * @param request 查询请求
+     * @return 角色列表
+     */
+    SysRoleListResponse getRoleList(SysRoleListRequest request);
+
+    /**
+     * 获取所有角色
+     * @return 所有角色
+     */
+    List<SysRoleResponse> getAllRoles();
+
+    /**
+     * 获取角色信息
+     * @param id 角色ID
+     * @return 角色信息
+     */
+    SysRoleResponse getRoleById(Long id);
 }

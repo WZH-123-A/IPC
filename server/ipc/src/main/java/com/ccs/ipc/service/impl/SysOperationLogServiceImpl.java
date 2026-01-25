@@ -2,6 +2,8 @@ package com.ccs.ipc.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.ccs.ipc.common.exception.ApiException;
+import com.ccs.ipc.common.response.ResultCode;
 import com.ccs.ipc.dto.logdto.OperationLogListRequest;
 import com.ccs.ipc.dto.logdto.OperationLogListResponse;
 import com.ccs.ipc.dto.logdto.OperationLogResponse;
@@ -103,7 +105,7 @@ public class SysOperationLogServiceImpl extends ServiceImpl<SysOperationLogMappe
     public OperationLogResponse getOperationLogById(Long id) {
         SysOperationLog log = this.getById(id);
         if (log == null) {
-            return null;
+            throw new ApiException(ResultCode.OPERATION_LOG_NOT_FOUNT.getMessage());
         }
         return convertToResponse(log);
     }

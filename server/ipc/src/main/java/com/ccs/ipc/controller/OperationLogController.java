@@ -42,9 +42,6 @@ public class OperationLogController {
     @RequirePermission("api:operation-log:detail")
     public Response<OperationLogResponse> getOperationLogById(@PathVariable Long id) {
         OperationLogResponse response = sysOperationLogService.getOperationLogById(id);
-        if (response == null) {
-            return Response.fail("操作日志不存在");
-        }
         return Response.success(response);
     }
 

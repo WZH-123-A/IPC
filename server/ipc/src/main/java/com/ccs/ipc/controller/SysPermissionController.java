@@ -1,10 +1,14 @@
 package com.ccs.ipc.controller;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.ccs.ipc.common.annotation.Log;
 import com.ccs.ipc.common.annotation.RequirePermission;
+import com.ccs.ipc.common.enums.OperationModule;
+import com.ccs.ipc.common.enums.OperationType;
 import com.ccs.ipc.common.response.Response;
 import com.ccs.ipc.dto.permissiondto.CreatePermissionRequest;
 import com.ccs.ipc.dto.permissiondto.PermissionTreeNode;
+import com.ccs.ipc.dto.permissiondto.SysPermissionResponse;
 import com.ccs.ipc.dto.permissiondto.UpdatePermissionRequest;
 import com.ccs.ipc.entity.SysPermission;
 import com.ccs.ipc.service.ISysPermissionService;
@@ -33,6 +37,7 @@ public class SysPermissionController {
      */
     @GetMapping("/tree")
     @RequirePermission("api:permission:list")
+    @Log(operationType = OperationType.QUERY, operationModule = OperationModule.PERMISSION, operationDesc = "获取所有权限（树形结构）")
     public Response<List<PermissionTreeNode>> getPermissionTree(
             @RequestParam(required = false) Byte permissionType) {
         List<PermissionTreeNode> tree = sysPermissionService.getPermissionTree(permissionType);
@@ -44,17 +49,11 @@ public class SysPermissionController {
      */
     @GetMapping("/list")
     @RequirePermission("api:permission:list")
-    public Response<List<SysPermission>> getPermissionList(
+    @Log(operationType = OperationType.QUERY, operationModule = OperationModule.PERMISSION, operationDesc = "获取所有权限（列表）")
+    public Response<List<SysPermissionResponse>> getPermissionList(
             @RequestParam(required = false) Byte permissionType) {
-        LambdaQueryWrapper<SysPermission> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(SysPermission::getIsDeleted, 0);
-        if (permissionType != null) {
-            queryWrapper.eq(SysPermission::getPermissionType, permissionType);
-        }
-        queryWrapper.orderByAsc(SysPermission::getSort);
-        
-        List<SysPermission> permissions = sysPermissionService.list(queryWrapper);
-        return Response.success(permissions);
+        List<SysPermissionResponse> responses = sysPermissionService.getPermissionList(permissionType);
+        return Response.success(responses);
     }
 
     /**
@@ -62,12 +61,10 @@ public class SysPermissionController {
      */
     @GetMapping("/{id}")
     @RequirePermission("api:permission:detail")
-    public Response<SysPermission> getPermissionById(@PathVariable Long id) {
-        SysPermission permission = sysPermissionService.getById(id);
-        if (permission == null || (permission.getIsDeleted() != null && permission.getIsDeleted() == 1)) {
-            return Response.fail("权限不存在");
-        }
-        return Response.success(permission);
+    @Log(operationType = OperationType.QUERY, operationModule = OperationModule.PERMISSION, operationDesc = "根据ID获取权限详情")
+    public Response<SysPermissionResponse> getPermissionById(@PathVariable Long id) {
+        SysPermissionResponse response = sysPermissionService.getPermissionById(id);
+        return Response.success(response);
     }
 
     /**
@@ -75,9 +72,10 @@ public class SysPermissionController {
      */
     @PostMapping
     @RequirePermission("api:permission:create")
-    public Response<SysPermission> createPermission(@Valid @RequestBody CreatePermissionRequest request) {
-        SysPermission permission = sysPermissionService.createPermission(request);
-        return Response.success(permission);
+    @Log(operationType = OperationType.ADD, operationModule = OperationModule.PERMISSION, operationDesc = "新增权限")
+    public Response<SysPermissionResponse> createPermission(@Valid @RequestBody CreatePermissionRequest request) {
+        SysPermissionResponse response = sysPermissionService.createPermission(request);
+        return Response.success(response);
     }
 
     /**
@@ -85,9 +83,10 @@ public class SysPermissionController {
      */
     @PutMapping("/{id}")
     @RequirePermission("api:permission:update")
-    public Response<SysPermission> updatePermission(@PathVariable Long id, @RequestBody UpdatePermissionRequest request) {
-        SysPermission permission = sysPermissionService.updatePermission(id, request);
-        return Response.success(permission);
+    @Log(operationType = OperationType.UPDATE, operationModule = OperationModule.PERMISSION, operationDesc = "更新权限")
+    public Response<SysPermissionResponse> updatePermission(@PathVariable Long id, @RequestBody UpdatePermissionRequest request) {
+        SysPermissionResponse response = sysPermissionService.updatePermission(id, request);
+        return Response.success(response);
     }
 
     /**
