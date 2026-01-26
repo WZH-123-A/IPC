@@ -1,5 +1,5 @@
 import request, { type ApiResponse } from './request'
-import type { PermissionTreeNode } from './admin/permission'
+import type { UserPermissionTreeNode } from './userPermissions'
 
 // 登录参数接口
 export interface LoginParams {
@@ -18,7 +18,7 @@ export interface LoginResponse {
   username: string
   realName: string
   roles: UserRole[]
-  permissions: string[] // 权限编码列表（如：["patient:home", "patient:consultation"]）
+  permissions: UserPermissionTreeNode[] // 权限树列表
 }
 
 // 用户信息接口
@@ -28,7 +28,7 @@ export interface UserInfo {
   username: string
   realName: string
   roles: UserRole[]
-  permissions: string[] // 权限编码列表
+  permissions: UserPermissionTreeNode[] // 权限树列表
   email?: string
   avatar?: string
 }
@@ -73,17 +73,10 @@ export const refreshTokenApi = async (): Promise<string> => {
 }
 
 /**
- * 获取当前用户的菜单权限树
+ * 刷新用户权限
+ * @returns 最新的权限树列表
  */
-export const getCurrentUserMenusApi = async (): Promise<PermissionTreeNode[]> => {
-  const response = await request.get<ApiResponse<PermissionTreeNode[]>>('/auth/menus')
-  return response.data.data
-}
-
-/**
- * 获取当前用户的按钮权限列表
- */
-export const getCurrentUserButtonsApi = async (): Promise<string[]> => {
-  const response = await request.get<ApiResponse<string[]>>('/auth/buttons')
+export const refreshPermissionsApi = async (): Promise<UserPermissionTreeNode[]> => {
+  const response = await request.get<ApiResponse<UserPermissionTreeNode[]>>('/auth/permissions')
   return response.data.data
 }

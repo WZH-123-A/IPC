@@ -123,6 +123,7 @@ import {
   type UpdateRoleParams,
 } from '../../../api/admin/role'
 import { getPermissionTreeApi, type PermissionTreeNode } from '../../../api/admin/permission'
+import { useAuthStore } from '../../../stores/auth'
 
 const baseRef = ref<InstanceType<typeof BaseManageView>>()
 const formRef = ref<FormInstance>()
@@ -133,6 +134,7 @@ const permissionDialogVisible = ref(false)
 const currentRoleId = ref<number>(0)
 const isEdit = ref(false)
 const assignPermissionLoading = ref(false)
+const authStore = useAuthStore()
 
 const formRules = {
   roleCode: [{ required: true, message: '请输入角色编码', trigger: 'blur' }],
@@ -261,8 +263,14 @@ const handleAssignPermissionSubmit = async () => {
     permissionDialogVisible.value = false
     // 重置权限对话框状态
     handlePermissionDialogClose()
-    // 触发菜单权限刷新事件，以便导航栏实时更新
-    window.dispatchEvent(new CustomEvent('permission-refresh'))
+    // 刷新用户权限
+    try {
+      await authStore.refreshPermissions()
+      // 触发菜单权限刷新事件，以便导航栏实时更新
+      window.dispatchEvent(new CustomEvent('permission-refresh'))
+    } catch (error) {
+      console.error('刷新权限失败:', error)
+    }
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : '分配权限失败'
     ElMessage.error(message)

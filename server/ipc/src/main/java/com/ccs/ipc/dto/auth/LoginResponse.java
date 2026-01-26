@@ -1,6 +1,7 @@
 package com.ccs.ipc.dto.auth;
 
 import com.ccs.ipc.common.annotation.Sensitive;
+import com.ccs.ipc.dto.permissiondto.PermissionTreeNode;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -48,8 +49,8 @@ public class LoginResponse implements Serializable {
     private List<String> roles;
 
     /**
-     * 权限编码列表（如：["patient:home", "patient:consultation"]）
+     * 权限树列表
      */
-    private List<String> permissions;
+    private List<PermissionTreeNode> permissions;
 }
 

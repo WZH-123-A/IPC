@@ -294,6 +294,22 @@ public class SysPermissionServiceImpl extends ServiceImpl<SysPermissionMapper, S
             }
         }
     }
+    @Override
+    public List<PermissionTreeNode> getUserPermissionTree(Long userId){
+        Set<Long> userPermissionIds = getUserPermissionIds(userId);
+
+        if (userPermissionIds.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        LambdaQueryWrapper<SysPermission> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.in(SysPermission::getId, userPermissionIds)
+                .eq(SysPermission::getIsDeleted, 0);
+        queryWrapper.orderByAsc(SysPermission::getSort);
+        List<SysPermission> permissions = this.list(queryWrapper);
+
+        return buildTree(permissions, 0L);
+    }
 
     @Override
     public List<PermissionTreeNode> getUserMenuTree(Long userId) {

@@ -76,7 +76,7 @@ const hasPermissionsRoutesAdded = (permissions: string[]): boolean => {
  */
 export const addDynamicRoutes = () => {
   const authStore = useAuthStore()
-  const permissions = authStore.userPermissions
+  const permissions = authStore.userRoutePermissions
 
   if (!permissions || permissions.length === 0) {
     return
@@ -151,7 +151,7 @@ router.beforeEach(async (to, from, next) => {
   if (to.name === 'login') {
     if (authStore.isAuthenticated) {
       // 已登录，根据权限或角色跳转到对应首页
-      const defaultRoute = getDefaultRouteByPermissions(authStore.userPermissions) 
+      const defaultRoute = getDefaultRouteByPermissions(authStore.userRoutePermissions) 
         || getDefaultRouteByRole(authStore.userRole ?? null)
       next({ name: defaultRoute })
     } else {
@@ -162,10 +162,10 @@ router.beforeEach(async (to, from, next) => {
 
   // 如果已登录
   if (authStore.isAuthenticated) {
-    const userPermissions = authStore.userPermissions
+    const userRoutePermissions = authStore.userRoutePermissions
 
-    // 检查是否需要添加动态路由（根据当前用户的权限）
-    if (!hasPermissionsRoutesAdded(userPermissions)) {
+    // 检查是否需要添加动态路由（根据当前用户的路由权限）
+    if (!hasPermissionsRoutesAdded(userRoutePermissions)) {
       addDynamicRoutes()
       // 重新导航到目标路由，让路由系统重新匹配
       next({ path: to.path, replace: true })
@@ -175,11 +175,11 @@ router.beforeEach(async (to, from, next) => {
     // 检查权限（路由需要特定权限才能访问）
     const requiredPermission = to.meta.permission as string | undefined
     if (requiredPermission) {
-      const hasPermission = userPermissions.includes(requiredPermission)
+      const hasPermission = userRoutePermissions.includes(requiredPermission)
 
       if (!hasPermission) {
         // 没有权限，跳转到默认首页
-        const defaultRoute = getDefaultRouteByPermissions(userPermissions) 
+        const defaultRoute = getDefaultRouteByPermissions(userRoutePermissions) 
           || getDefaultRouteByRole(authStore.userRole ?? null)
         next({ name: defaultRoute })
         return

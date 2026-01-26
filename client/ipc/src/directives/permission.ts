@@ -1,4 +1,6 @@
 import type { Directive, DirectiveBinding } from 'vue'
+import type { UserPermissionTreeNode } from '../api/userPermissions'
+import { extractPermissionCodesByType } from '../api/userPermissions'
 
 /**
  * 权限指令
@@ -21,7 +23,8 @@ export const permission: Directive = {
 
     try {
       const userInfo = JSON.parse(userInfoStr)
-      const permissions: string[] = userInfo.permissions || []
+      const permissionTree: UserPermissionTreeNode[] = userInfo.permissions || []
+      const permissions = extractPermissionCodesByType(permissionTree, 2) // 只提取按钮权限
 
       if (!permissions.includes(permissionCode)) {
         el.style.display = 'none'
@@ -45,7 +48,8 @@ export const permission: Directive = {
 
     try {
       const userInfo = JSON.parse(userInfoStr)
-      const permissions: string[] = userInfo.permissions || []
+      const permissionTree: UserPermissionTreeNode[] = userInfo.permissions || []
+      const permissions = extractPermissionCodesByType(permissionTree, 2) // 只提取按钮权限
 
       if (permissions.includes(permissionCode)) {
         el.style.display = ''
@@ -70,7 +74,8 @@ export function hasPermission(permissionCode: string): boolean {
 
   try {
     const userInfo = JSON.parse(userInfoStr)
-    const permissions: string[] = userInfo.permissions || []
+    const permissionTree: UserPermissionTreeNode[] = userInfo.permissions || []
+    const permissions = extractPermissionCodesByType(permissionTree, 2) // 只提取按钮权限
     return permissions.includes(permissionCode)
   } catch (error) {
     console.error('Failed to parse user info:', error)

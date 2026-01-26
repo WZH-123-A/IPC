@@ -7,6 +7,7 @@ import com.ccs.ipc.common.response.ResultCode;
 import com.ccs.ipc.common.util.JwtUtil;
 import com.ccs.ipc.common.util.PasswordUtil;
 import com.ccs.ipc.dto.auth.LoginResponse;
+import com.ccs.ipc.dto.permissiondto.PermissionTreeNode;
 import com.ccs.ipc.dto.userdto.*;
 import com.ccs.ipc.entity.*;
 import com.ccs.ipc.mapper.SysUserMapper;
@@ -80,8 +81,8 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
         // 查询用户角色列表
         List<String> roleCodes = getUserRoleCodes(user.getId());
 
-        // 查询用户权限列表
-        List<String> permissionCodes = getUserPermissionCodes(user.getId());
+        // 查询用户权限树列表
+        List<PermissionTreeNode> permissions = sysPermissionService.getUserPermissionTree(user.getId());
 
         LoginResponse response = new LoginResponse();
         response.setToken(token);
@@ -89,7 +90,7 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
         response.setUsername(user.getUsername());
         response.setRealName(user.getRealName());
         response.setRoles(roleCodes);
-        response.setPermissions(permissionCodes);
+        response.setPermissions(permissions);
 
         return response;
     }

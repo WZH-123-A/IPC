@@ -9,33 +9,13 @@
       active-text-color="#409EFF"
       :unique-opened="false"
     >
-      <template v-for="menuItem in menuItems" :key="menuItem.index">
-        <!-- 有子菜单的情况 -->
-        <el-sub-menu
-          v-if="menuItem.children && menuItem.children.length > 0"
-          :index="menuItem.index"
-        >
-          <template #title>
-            <el-icon v-if="getIcon(menuItem.permissionCode)">
-              <component :is="getIcon(menuItem.permissionCode)" />
-            </el-icon>
-            <span>{{ menuItem.title }}</span>
-          </template>
-          <el-menu-item v-for="child in menuItem.children" :key="child.index" :index="child.index">
-            <el-icon v-if="getIcon(child.permissionCode)">
-              <component :is="getIcon(child.permissionCode)" />
-            </el-icon>
-            <span>{{ child.title }}</span>
-          </el-menu-item>
-        </el-sub-menu>
-        <!-- 单个菜单项 -->
-        <el-menu-item v-else :index="menuItem.index">
-          <el-icon v-if="getIcon(menuItem.permissionCode)">
-            <component :is="getIcon(menuItem.permissionCode)" />
-          </el-icon>
-          <span>{{ menuItem.title }}</span>
-        </el-menu-item>
-      </template>
+      <MenuItemComponent
+        v-for="menuItem in menuItems"
+        :key="menuItem.index"
+        :menu-item="menuItem"
+        :icon-map="iconMap"
+        :permission-to-icon-map="permissionToIconMap"
+      />
     </el-menu>
   </aside>
 </template>
@@ -43,14 +23,15 @@
 <script setup lang="ts">
 import { computed, ref, onMounted, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
-import { getCurrentUserMenusApi } from '../../api/auth'
 import {
   convertPermissionTreeToMenuItems,
   permissionToIconMap,
   type MenuItem,
 } from '../../utils/permission'
-import type { PermissionTreeNode } from '../../api/admin/permission'
+import type { UserPermissionTreeNode } from '../../api/userPermissions'
+import { filterPermissionsByType } from '../../api/userPermissions'
 import { useAuthStore } from '../../stores/auth'
+import MenuItemComponent from './MenuItem.vue'
 import {
   HomeFilled,
   User,
@@ -106,85 +87,41 @@ const iconMap: Record<string, unknown> = {
 
 const activeMenu = computed(() => route.path)
 
-const getIcon = (permissionCode: string) => {
-  const iconName = permissionToIconMap[permissionCode]
-  return iconName ? iconMap[iconName] : null
-}
-
-/**
- * 从权限树中提取所有按钮权限编码
- */
-const extractButtonPermissions = (tree: PermissionTreeNode[]): string[] => {
-  const buttonPermissions: string[] = []
-
-  const traverse = (nodes: PermissionTreeNode[]) => {
-    for (const node of nodes) {
-      // 如果是按钮权限（permissionType = 2），添加到列表中
-      if (node.permissionType === 2) {
-        buttonPermissions.push(node.permissionCode)
-      }
-      // 递归处理子节点
-      if (node.children && node.children.length > 0) {
-        traverse(node.children)
-      }
-    }
-  }
-
-  traverse(tree)
-  return buttonPermissions
-}
-
 // 加载菜单权限
-const loadMenuPermissions = async () => {
+const loadMenuPermissions = () => {
   try {
-    const menuTree: PermissionTreeNode[] = await getCurrentUserMenusApi()
-    menuItems.value = convertPermissionTreeToMenuItems(menuTree)
+    // 优先从 authStore 获取权限树
+    let permissionTree: UserPermissionTreeNode[] | null = null
 
-    const buttonPermissions = extractButtonPermissions(menuTree)
-
-    if (authStore.userInfo) {
-      const buttonPermissionPatterns = [
-        ':add',
-        ':edit',
-        ':delete',
-        ':query',
-        ':view',
-        ':assign',
-        ':reset-password',
-        ':batch-delete',
-        ':create',
-        ':update',
-      ]
-
-      const localPermissions = authStore.userInfo.permissions || []
-
-      const nonButtonPermissions = localPermissions.filter((permission) => {
-        return !buttonPermissionPatterns.some((pattern) => permission.endsWith(pattern))
-      })
-
-      const allPermissions = [...new Set([...nonButtonPermissions, ...buttonPermissions])]
-
-      const permissionsChanged =
-        allPermissions.length !== localPermissions.length ||
-        !allPermissions.every((perm) => localPermissions.includes(perm)) ||
-        !localPermissions.every((perm) => allPermissions.includes(perm))
-
-      if (permissionsChanged) {
-        authStore.userInfo = {
-          ...authStore.userInfo,
-          permissions: allPermissions,
-        }
-
-        const userInfoStr = JSON.stringify(authStore.userInfo)
-        if (localStorage.getItem('token')) {
-          localStorage.setItem('userInfo', userInfoStr)
-        } else {
-          sessionStorage.setItem('userInfo', userInfoStr)
+    if (authStore.userInfo?.permissions) {
+      permissionTree = authStore.userInfo.permissions
+    } else {
+      // 如果 store 中没有，尝试从本地存储获取
+      const userInfoStr = localStorage.getItem('userInfo') || sessionStorage.getItem('userInfo')
+      if (userInfoStr) {
+        try {
+          const userInfo = JSON.parse(userInfoStr)
+          permissionTree = userInfo.permissions || null
+        } catch (e) {
+          console.error('解析用户信息失败:', e)
         }
       }
     }
+
+    if (!permissionTree || permissionTree.length === 0) {
+      console.warn('未找到权限树数据')
+      menuItems.value = []
+      return
+    }
+
+    // 过滤出菜单权限（permissionType === 1）
+    const menuTree = filterPermissionsByType(permissionTree, 1)
+    
+    // 转换为菜单项
+    menuItems.value = convertPermissionTreeToMenuItems(menuTree)
   } catch (error) {
     console.error('Failed to load menu permissions:', error)
+    menuItems.value = []
   }
 }
 

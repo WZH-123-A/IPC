@@ -51,6 +51,20 @@ public class AuthController {
     }
 
     /**
+     * 获取当前用户的权限树
+     *
+     * @param request HTTP请求
+     * @return 权限树
+     */
+    @GetMapping("/permissions")
+    @Log(operationType = OperationType.QUERY, operationModule = OperationModule.AUTH, operationDesc = "获取当前用户的权限树", saveRequestData = true, saveResponseData = true)
+    public Response<List<PermissionTreeNode>> getCurrentUserPermissions(HttpServletRequest request) {
+        Long userId = UserContext.getUserId(request);
+        List<PermissionTreeNode> permissionTree = sysPermissionService.getUserPermissionTree(userId);
+        return Response.success(permissionTree);
+    }
+
+    /**
      * 获取当前用户的菜单权限树
      *
      * @param request HTTP请求

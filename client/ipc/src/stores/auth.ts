@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import { loginApi, logoutApi, type LoginParams, type UserInfo, type UserRole } from '../api/auth'
+import { loginApi, logoutApi, refreshPermissionsApi, type LoginParams, type UserInfo, type UserRole } from '../api/auth'
+import { extractPermissionCodes, extractPermissionCodesByType } from '../api/userPermissions'
 
 export const useAuthStore = defineStore('auth', () => {
   const token = ref<string | null>(localStorage.getItem('token') || null)
@@ -26,9 +27,44 @@ export const useAuthStore = defineStore('auth', () => {
   // 计算属性：是否为管理员
   const isAdmin = computed(() => userRoles.value.includes('admin'))
 
-  // 计算属性：获取用户权限列表
+  // 计算属性：获取用户权限编码列表（从权限树中提取）
   const userPermissions = computed<string[]>(() => {
-    return userInfo.value?.permissions || []
+    if (!userInfo.value?.permissions) {
+      return []
+    }
+    return extractPermissionCodes(userInfo.value.permissions)
+  })
+
+  // 计算属性：获取菜单权限编码列表（permissionType === 1）
+  const userMenuPermissions = computed<string[]>(() => {
+    if (!userInfo.value?.permissions) {
+      return []
+    }
+    return extractPermissionCodesByType(userInfo.value.permissions, 1)
+  })
+
+  // 计算属性：获取按钮权限编码列表（permissionType === 2）
+  const userButtonPermissions = computed<string[]>(() => {
+    if (!userInfo.value?.permissions) {
+      return []
+    }
+    return extractPermissionCodesByType(userInfo.value.permissions, 2)
+  })
+
+  // 计算属性：获取接口权限编码列表（permissionType === 3）
+  const userApiPermissions = computed<string[]>(() => {
+    if (!userInfo.value?.permissions) {
+      return []
+    }
+    return extractPermissionCodesByType(userInfo.value.permissions, 3)
+  })
+
+  // 计算属性：获取路由权限编码列表（permissionType === 4）
+  const userRoutePermissions = computed<string[]>(() => {
+    if (!userInfo.value?.permissions) {
+      return []
+    }
+    return extractPermissionCodesByType(userInfo.value.permissions, 4)
   })
 
   // 计算属性：是否拥有指定角色
@@ -132,6 +168,36 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  // 刷新权限
+  const refreshPermissions = async () => {
+    try {
+      if (!userInfo.value) {
+        console.warn('用户未登录，无法刷新权限')
+        return
+      }
+
+      // 调用 API 获取最新权限
+      const newPermissions = await refreshPermissionsApi()
+
+      // 更新 userInfo 中的权限
+      userInfo.value = {
+        ...userInfo.value,
+        permissions: newPermissions,
+      }
+
+      // 更新本地存储
+      const userInfoStr = JSON.stringify(userInfo.value)
+      if (localStorage.getItem('token')) {
+        localStorage.setItem('userInfo', userInfoStr)
+      } else if (sessionStorage.getItem('token')) {
+        sessionStorage.setItem('userInfo', userInfoStr)
+      }
+    } catch (error: unknown) {
+      console.error('刷新权限失败:', error)
+      throw error
+    }
+  }
+
   // 初始化时检查登录状态
   checkAuth()
 
@@ -142,6 +208,10 @@ export const useAuthStore = defineStore('auth', () => {
     userRoles,
     userRole,
     userPermissions,
+    userMenuPermissions,
+    userButtonPermissions,
+    userApiPermissions,
+    userRoutePermissions,
     isPatient,
     isDoctor,
     isAdmin,
@@ -152,5 +222,6 @@ export const useAuthStore = defineStore('auth', () => {
     login,
     logout,
     checkAuth,
+    refreshPermissions,
   }
 })

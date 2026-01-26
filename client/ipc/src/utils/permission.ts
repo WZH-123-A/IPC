@@ -1,4 +1,4 @@
-import type { PermissionTreeNode } from '../api/admin/permission'
+import type { UserPermissionTreeNode } from '../api/userPermissions'
 
 /**
  * 菜单项接口
@@ -73,10 +73,21 @@ export const permissionToIconMap: Record<string, string> = {
 }
 
 export function convertPermissionTreeToMenuItems(
-  tree: PermissionTreeNode[],
+  tree: UserPermissionTreeNode[],
   permissionToRoute: Record<string, string> = permissionToRouteMap
 ): MenuItem[] {
-  return tree
+  // 如果最上层只有一个节点且是"菜单权限分组"，则忽略它，直接使用其子节点
+  let processedTree = tree
+  if (
+    tree.length === 1 &&
+    tree[0]?.permissionCode === 'menu:group' &&
+    tree[0]?.children &&
+    tree[0].children.length > 0
+  ) {
+    processedTree = tree[0].children
+  }
+
+  return processedTree
     .filter((node) => {
       return node.permissionType === 1
     })

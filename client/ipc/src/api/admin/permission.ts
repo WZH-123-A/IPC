@@ -2,6 +2,17 @@ import request, { type ApiResponse } from '../request'
 
 // ==================== 权限管理 ====================
 
+// 权限树节点接口（用于管理端）
+export interface PermissionTreeNode {
+  id: number
+  permissionCode: string
+  permissionName: string
+  permissionType: number
+  parentId: number
+  sort: number
+  children?: PermissionTreeNode[]
+}
+
 export interface Permission {
   id: number
   permissionCode: string
@@ -11,16 +22,6 @@ export interface Permission {
   sort: number
   createTime: string
   updateTime: string
-}
-
-export interface PermissionTreeNode {
-  id: number
-  permissionCode: string
-  permissionName: string
-  permissionType: number
-  parentId: number
-  sort: number
-  children?: PermissionTreeNode[]
 }
 
 export interface PermissionListParams {

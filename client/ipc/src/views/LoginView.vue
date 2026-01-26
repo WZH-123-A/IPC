@@ -139,8 +139,8 @@ const handleLogin = async () => {
         if (redirect) {
           router.push(redirect)
         } else {
-          // 优先使用权限获取默认路由
-          const defaultRoute = getDefaultRouteByPermissions(authStore.userPermissions) 
+          // 优先使用路由权限获取默认路由
+          const defaultRoute = getDefaultRouteByPermissions(authStore.userRoutePermissions) 
             || (authStore.userRole ? getDefaultRouteByRole(authStore.userRole) : 'login')
           
           if (defaultRoute === 'login') {
