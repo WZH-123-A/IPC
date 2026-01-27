@@ -1,7 +1,10 @@
 package com.ccs.ipc.service;
 
-import com.ccs.ipc.entity.DiagnosisResult;
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.ccs.ipc.dto.patientdto.DiagnosisResultResponse;
+import com.ccs.ipc.entity.DiagnosisResult;
+
+import java.util.List;
 
 /**
  * <p>
@@ -13,4 +16,12 @@ import com.baomidou.mybatisplus.extension.service.IService;
  */
 public interface IDiagnosisResultService extends IService<DiagnosisResult> {
 
+    /**
+     * 获取诊断结果列表（验证记录权限）
+     *
+     * @param recordId 记录ID
+     * @param userId   患者ID
+     * @return 诊断结果列表
+     */
+    List<DiagnosisResultResponse> getRecordResults(Long recordId, Long userId);
 }

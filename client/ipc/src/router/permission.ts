@@ -6,6 +6,7 @@ import type { UserRole } from '../api/auth'
  * 定义每个路由需要的权限编码（由后端权限系统控制）
  */
 import AdminLayout from '../layouts/admin/AdminLayout.vue'
+import PatientLayout from '../layouts/patient/PatientLayout.vue'
 
 /**
  * 路由权限配置
@@ -220,36 +221,47 @@ export const permissionRoutes: RouteRecordRaw[] = [
       },
     ],
   },
-  // 患者相关路由
+  // 患者相关路由（使用布局组件）
   {
-    path: '/patient/home',
-    name: 'patient-home',
-    component: () => import('../views/patient/PatientHomeView.vue'),
+    path: '/patient',
+    component: PatientLayout,
+    redirect: '/patient/home',
     meta: {
-      title: '患者首页',
       requiresAuth: true,
       permission: 'patient:home',
     },
-  },
-  {
-    path: '/patient/consultation',
-    name: 'patient-consultation',
-    component: () => import('../views/patient/ConsultationView.vue'),
-    meta: {
-      title: '在线问诊',
-      requiresAuth: true,
-      permission: 'patient:consultation',
-    },
-  },
-  {
-    path: '/patient/diagnosis',
-    name: 'patient-diagnosis',
-    component: () => import('../views/patient/DiagnosisView.vue'),
-    meta: {
-      title: '皮肤诊断',
-      requiresAuth: true,
-      permission: 'patient:diagnosis',
-    },
+    children: [
+      {
+        path: 'home',
+        name: 'patient-home',
+        component: () => import('../views/patient/PatientHomeView.vue'),
+        meta: {
+          title: '患者首页',
+          requiresAuth: true,
+          permission: 'patient:home',
+        },
+      },
+      {
+        path: 'consultation',
+        name: 'patient-consultation',
+        component: () => import('../views/patient/ConsultationView.vue'),
+        meta: {
+          title: '在线问诊',
+          requiresAuth: true,
+          permission: 'patient:consultation',
+        },
+      },
+      {
+        path: 'diagnosis',
+        name: 'patient-diagnosis',
+        component: () => import('../views/patient/DiagnosisView.vue'),
+        meta: {
+          title: '皮肤诊断',
+          requiresAuth: true,
+          permission: 'patient:diagnosis',
+        },
+      },
+    ],
   },
   // 医生相关路由
   {

@@ -231,17 +231,30 @@ const handleDelete = async (row: Role) => {
 
 // 分配权限
 const handleAssignPermission = async (row: Role) => {
+  // 先清除上次的记录
+  checkedPermissionIds.value = []
   currentRoleId.value = row.id
   permissionDialogVisible.value = true
+
+  // 等待对话框打开后再设置树节点，确保树组件已渲染
+  await new Promise((resolve) => setTimeout(resolve, 100))
 
   // 加载角色已有权限
   try {
     const permissionIds = await getRolePermissionsApi(row.id)
     checkedPermissionIds.value = permissionIds
+    // 手动设置树节点的选中状态
+    if (permissionTreeRef.value) {
+      permissionTreeRef.value.setCheckedKeys(permissionIds)
+    }
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : '加载角色权限失败'
     ElMessage.error(message)
     checkedPermissionIds.value = []
+    // 确保树节点也被清除
+    if (permissionTreeRef.value) {
+      permissionTreeRef.value.setCheckedKeys([])
+    }
   }
 }
 
@@ -316,8 +329,13 @@ const handleSubmit = async (formData: Record<string, unknown>) => {
 
 // 权限对话框关闭
 const handlePermissionDialogClose = () => {
+  // 清除所有记录和状态
   checkedPermissionIds.value = []
   currentRoleId.value = 0
+  // 清除树节点的选中状态
+  if (permissionTreeRef.value) {
+    permissionTreeRef.value.setCheckedKeys([])
+  }
 }
 
 onMounted(() => {

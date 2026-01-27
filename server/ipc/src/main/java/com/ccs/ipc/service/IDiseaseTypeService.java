@@ -1,7 +1,10 @@
 package com.ccs.ipc.service;
 
-import com.ccs.ipc.entity.DiseaseType;
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.ccs.ipc.dto.patientdto.DiseaseTypeResponse;
+import com.ccs.ipc.entity.DiseaseType;
+
+import java.util.List;
 
 /**
  * <p>
@@ -13,4 +16,10 @@ import com.baomidou.mybatisplus.extension.service.IService;
  */
 public interface IDiseaseTypeService extends IService<DiseaseType> {
 
+    /**
+     * 获取所有疾病类型列表
+     *
+     * @return 疾病类型列表
+     */
+    List<DiseaseTypeResponse> getAllDiseaseTypes();
 }
