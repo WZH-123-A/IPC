@@ -1,5 +1,6 @@
 package com.ccs.ipc.service;
 
+import com.ccs.ipc.dto.doctordto.*;
 import com.ccs.ipc.entity.DoctorInfo;
 import com.baomidou.mybatisplus.extension.service.IService;
 
@@ -13,4 +14,29 @@ import com.baomidou.mybatisplus.extension.service.IService;
  */
 public interface IDoctorInfoService extends IService<DoctorInfo> {
 
+    /**
+     * 获取医生首页数据
+     *
+     * @param doctorId 医生ID
+     * @return 医生首页响应
+     */
+    DoctorHomeResponse getDoctorHome(Long doctorId);
+
+    /**
+     * 分页查询患者列表
+     *
+     * @param doctorId 医生ID
+     * @param request   查询请求
+     * @return 患者列表
+     */
+    PatientListResponse getPatientList(Long doctorId, PatientListRequest request);
+
+    /**
+     * 分页查询问诊列表
+     *
+     * @param doctorId 医生ID
+     * @param request   查询请求
+     * @return 问诊列表
+     */
+    ConsultationListResponse getConsultationList(Long doctorId, ConsultationListRequest request);
 }
