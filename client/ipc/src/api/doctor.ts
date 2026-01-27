@@ -55,6 +55,7 @@ export interface Consultation {
   sessionNo: string
   patientId: number
   patientName?: string
+  patientAvatar?: string
   doctorId?: number
   sessionType: number // 1-AI问诊 2-医生问诊
   title?: string
@@ -97,5 +98,67 @@ export const getPatientListApi = async (params: PatientListParams) => {
  */
 export const getConsultationListApi = async (params: ConsultationListParams) => {
   const response = await request.get<ApiResponse<{ records: Consultation[]; total: number; current: number; size: number }>>('/doctor/consultations', { params })
+  return response.data.data
+}
+
+// ==================== 问诊消息 ====================
+
+export interface ConsultationMessage {
+  id: number
+  sessionId: number
+  senderId: number
+  senderType: number // 1-患者 2-医生 3-AI
+  messageType: number // 1-文本 2-图片 3-语音 4-视频
+  content: string
+  aiModel?: string
+  isRead: number
+  createTime: string
+}
+
+export interface SendDoctorMessageRequest {
+  sessionId: number
+  messageType: number
+  content: string
+}
+
+export interface ConsultationMessageListParams {
+  current?: number
+  size?: number
+}
+
+/**
+ * 获取问诊消息列表
+ */
+export const getConsultationMessages = async (
+  sessionId: number,
+  params?: ConsultationMessageListParams
+) => {
+  const response = await request.get<ApiResponse<{
+    records: ConsultationMessage[]
+    total: number
+    current: number
+    size: number
+  }>>(`/doctor/consultations/${sessionId}/messages`, { params })
+  return response.data.data
+}
+
+/**
+ * 医生发送消息
+ */
+export const sendDoctorMessage = async (data: SendDoctorMessageRequest) => {
+  const response = await request.post<ApiResponse<ConsultationMessage>>(
+    '/doctor/consultations/messages',
+    data
+  )
+  return response.data.data
+}
+
+/**
+ * 结束问诊
+ */
+export const endConsultation = async (sessionId: number) => {
+  const response = await request.post<ApiResponse<void>>(
+    `/doctor/consultations/${sessionId}/end`
+  )
   return response.data.data
 }

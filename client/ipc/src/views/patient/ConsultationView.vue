@@ -45,8 +45,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted, onUnmounted, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { useAuthStore } from '../../stores/auth'
 import ConsultationHeader from '../../components/patient/ConsultationHeader.vue'
 import SessionList from '../../components/patient/SessionList.vue'
 import ChatPanel from '../../components/patient/ChatPanel.vue'
@@ -60,7 +61,9 @@ import {
   type ConsultationSession,
   type ConsultationMessage,
 } from '../../api/patient/consultation'
+import { websocketClient, type WebSocketMessage, WebSocketStatus } from '../../utils/websocket'
 
+const authStore = useAuthStore()
 const sessions = ref<ConsultationSession[]>([])
 const currentSessionId = ref<number | null>(null)
 const currentSession = ref<ConsultationSession | null>(null)
@@ -72,7 +75,34 @@ const creating = ref(false)
 const showImagePicker = ref(false)
 const imageInput = ref<HTMLInputElement | null>(null)
 
+// WebSocket订阅取消函数
+let unsubscribeMessage: (() => void) | null = null
+let unsubscribeStatus: (() => void) | null = null
+let unsubscribeStatusChange: (() => void) | null = null
+
 onMounted(async () => {
+  // 监听WebSocket连接状态变化
+  unsubscribeStatusChange = websocketClient.onStatusChange((status) => {
+    if (status === WebSocketStatus.CONNECTED) {
+      ElMessage.success('实时消息连接成功')
+    } else if (status === WebSocketStatus.ERROR) {
+      ElMessage.error('实时消息连接失败')
+    } else if (status === WebSocketStatus.DISCONNECTED) {
+      ElMessage.warning('实时消息连接已断开')
+    }
+  })
+
+  // 连接WebSocket
+  if (authStore.token) {
+    try {
+      await websocketClient.connect(authStore.token)
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'WebSocket连接失败'
+      console.error(message)
+      // WebSocket连接失败不影响页面使用，只记录错误
+    }
+  }
+
   await loadSessions()
   // 检查URL参数
   const urlParams = new URLSearchParams(window.location.search)
@@ -82,10 +112,65 @@ onMounted(async () => {
   }
 })
 
-// 监听当前会话变化，加载消息
+onUnmounted(() => {
+  // 取消订阅
+  if (unsubscribeMessage) {
+    unsubscribeMessage()
+    unsubscribeMessage = null
+  }
+  if (unsubscribeStatus) {
+    unsubscribeStatus()
+    unsubscribeStatus = null
+  }
+  if (unsubscribeStatusChange) {
+    unsubscribeStatusChange()
+    unsubscribeStatusChange = null
+  }
+  // 断开WebSocket连接
+  websocketClient.disconnect()
+})
+
+// 监听当前会话变化，加载消息并订阅WebSocket
 watch(currentSessionId, async (newId) => {
+  // 取消之前的订阅
+  if (unsubscribeMessage) {
+    unsubscribeMessage()
+    unsubscribeMessage = null
+  }
+  if (unsubscribeStatus) {
+    unsubscribeStatus()
+    unsubscribeStatus = null
+  }
+
   if (newId) {
     await loadMessages(newId)
+    // 订阅当前会话的WebSocket消息
+    if (websocketClient.isConnected()) {
+      try {
+        // 订阅消息
+        unsubscribeMessage = websocketClient.subscribeToSession(newId, (message: WebSocketMessage) => {
+          // 检查消息是否已存在（避免重复）
+          const exists = messages.value.some((m) => m.id === message.id)
+          if (!exists) {
+            messages.value.push(message as ConsultationMessage)
+          }
+        })
+
+        // 订阅状态更新
+        unsubscribeStatus = websocketClient.subscribeToSessionStatus(newId, (status: number) => {
+          if (currentSession.value) {
+            currentSession.value.status = status
+          }
+          // 更新会话列表中的状态
+          const session = sessions.value.find((s) => s.id === newId)
+          if (session) {
+            session.status = status
+          }
+        })
+      } catch (error: unknown) {
+        console.error('订阅WebSocket失败:', error)
+      }
+    }
   } else {
     messages.value = []
   }
@@ -131,12 +216,13 @@ const loadMessages = async (sessionId: number) => {
   }
 }
 
-const createSession = async (data: { sessionType: number; title: string }) => {
+const createSession = async (data: { sessionType: number; title: string; doctorId?: number }) => {
   creating.value = true
   try {
     const response = await createConsultationSession({
       sessionType: data.sessionType,
       title: data.title,
+      doctorId: data.doctorId,
     })
     if (response.data) {
       ElMessage.success('创建问诊成功')
@@ -163,7 +249,9 @@ const handleSendMessage = async (message: string) => {
       messageType: 1,
       content: message,
     })
-    if (response.data) {
+    // 消息会通过WebSocket推送，这里不需要手动添加到列表
+    // 但如果WebSocket未连接，则手动添加
+    if (response.data && !websocketClient.isConnected()) {
       messages.value.push(response.data)
     }
   } catch (error: unknown) {

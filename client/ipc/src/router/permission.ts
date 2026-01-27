@@ -7,6 +7,7 @@ import type { UserRole } from '../api/auth'
  */
 import AdminLayout from '../layouts/admin/AdminLayout.vue'
 import PatientLayout from '../layouts/patient/PatientLayout.vue'
+import DoctorLayout from '../layouts/doctor/DoctorLayout.vue'
 
 /**
  * 路由权限配置
@@ -263,36 +264,57 @@ export const permissionRoutes: RouteRecordRaw[] = [
       },
     ],
   },
-  // 医生相关路由
+  // 医生相关路由（使用布局组件）
   {
-    path: '/doctor/home',
-    name: 'doctor-home',
-    component: () => import('../views/doctor/DoctorHomeView.vue'),
+    path: '/doctor',
+    component: DoctorLayout,
+    redirect: '/doctor/home',
     meta: {
-      title: '医生首页',
       requiresAuth: true,
       permission: 'doctor:home',
     },
-  },
-  {
-    path: '/doctor/consultation',
-    name: 'doctor-consultation',
-    component: () => import('../views/doctor/ConsultationListView.vue'),
-    meta: {
-      title: '问诊管理',
-      requiresAuth: true,
-      permission: 'doctor:consultation',
-    },
-  },
-  {
-    path: '/doctor/patients',
-    name: 'doctor-patients',
-    component: () => import('../views/doctor/PatientListView.vue'),
-    meta: {
-      title: '患者管理',
-      requiresAuth: true,
-      permission: 'doctor:patients',
-    },
+    children: [
+      {
+        path: 'home',
+        name: 'doctor-home',
+        component: () => import('../views/doctor/DoctorHomeView.vue'),
+        meta: {
+          title: '工作台',
+          requiresAuth: true,
+          permission: 'doctor:home',
+        },
+      },
+      {
+        path: 'consultation/chat',
+        name: 'doctor-consultation-chat',
+        component: () => import('../views/doctor/ConsultationChatView.vue'),
+        meta: {
+          title: '在线问诊',
+          requiresAuth: true,
+          permission: 'doctor:consultation',
+        },
+      },
+      {
+        path: 'consultation',
+        name: 'doctor-consultation',
+        component: () => import('../views/doctor/ConsultationListView.vue'),
+        meta: {
+          title: '问诊管理',
+          requiresAuth: true,
+          permission: 'doctor:consultation',
+        },
+      },
+      {
+        path: 'patients',
+        name: 'doctor-patients',
+        component: () => import('../views/doctor/PatientListView.vue'),
+        meta: {
+          title: '患者管理',
+          requiresAuth: true,
+          permission: 'doctor:patients',
+        },
+      },
+    ],
   },
 ]
 

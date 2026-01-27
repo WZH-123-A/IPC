@@ -3,6 +3,7 @@ package com.ccs.ipc.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.ccs.ipc.dto.doctordto.*;
+import com.ccs.ipc.dto.patientdto.DoctorSimpleResponse;
 import com.ccs.ipc.entity.*;
 import com.ccs.ipc.mapper.DoctorInfoMapper;
 import com.ccs.ipc.service.*;
@@ -17,6 +18,7 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -244,11 +246,12 @@ public class DoctorInfoServiceImpl extends ServiceImpl<DoctorInfoMapper, DoctorI
             ConsultationResponse consultationResponse = new ConsultationResponse();
             BeanUtils.copyProperties(session, consultationResponse);
 
-            // 查询患者姓名
+            // 查询患者信息
             if (session.getPatientId() != null) {
                 SysUser patient = sysUserService.getById(session.getPatientId());
                 if (patient != null) {
                     consultationResponse.setPatientName(patient.getRealName());
+                    consultationResponse.setPatientAvatar(patient.getAvatar());
                     
                     // 如果指定了患者姓名过滤，检查是否匹配
                     if (StringUtils.hasText(request.getPatientName())) {
@@ -272,5 +275,68 @@ public class DoctorInfoServiceImpl extends ServiceImpl<DoctorInfoMapper, DoctorI
         response.setRecords(responseList);
 
         return response;
+    }
+
+    @Override
+    public List<DoctorSimpleResponse> getAvailableDoctors() {
+        // 查询医生角色ID
+        SysRole doctorRole = sysRoleService.getOne(new LambdaQueryWrapper<SysRole>()
+                .eq(SysRole::getRoleCode, "doctor")
+                .eq(SysRole::getIsDeleted, 0));
+        
+        if (doctorRole == null) {
+            return new ArrayList<>();
+        }
+
+        // 查询拥有医生角色的用户ID列表
+        List<SysUserRole> userRoles = sysUserRoleService.list(new LambdaQueryWrapper<SysUserRole>()
+                .eq(SysUserRole::getRoleId, doctorRole.getId()));
+        
+        if (userRoles == null || userRoles.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        List<Long> doctorUserIds = userRoles.stream()
+                .map(SysUserRole::getUserId)
+                .collect(Collectors.toList());
+
+        // 查询医生用户信息（只查询正常状态的）
+        List<SysUser> doctors = sysUserService.list(new LambdaQueryWrapper<SysUser>()
+                .in(SysUser::getId, doctorUserIds)
+                .eq(SysUser::getIsDeleted, 0)
+                .eq(SysUser::getStatus, 1)
+                .orderByDesc(SysUser::getCreateTime));
+
+        // 查询医生扩展信息
+        List<DoctorInfo> doctorInfos = this.list(new LambdaQueryWrapper<DoctorInfo>()
+                .in(DoctorInfo::getUserId, doctorUserIds)
+                .eq(DoctorInfo::getIsDeleted, 0));
+
+        // 构建医生信息Map（userId -> DoctorInfo）
+        Map<Long, DoctorInfo> doctorInfoMap = doctorInfos.stream()
+                .collect(Collectors.toMap(DoctorInfo::getUserId, info -> info, (k1, k2) -> k1));
+
+        // 转换为响应DTO
+        List<DoctorSimpleResponse> responseList = new ArrayList<>();
+        for (SysUser doctor : doctors) {
+            DoctorSimpleResponse response = new DoctorSimpleResponse();
+            response.setId(doctor.getId());
+            response.setRealName(doctor.getRealName());
+            response.setAvatar(doctor.getAvatar());
+
+            // 填充医生扩展信息
+            DoctorInfo doctorInfo = doctorInfoMap.get(doctor.getId());
+            if (doctorInfo != null) {
+                response.setHospital(doctorInfo.getHospital());
+                response.setDepartment(doctorInfo.getDepartment());
+                response.setTitle(doctorInfo.getTitle());
+                response.setSpecialty(doctorInfo.getSpecialty());
+                response.setWorkYears(doctorInfo.getWorkYears());
+            }
+
+            responseList.add(response);
+        }
+
+        return responseList;
     }
 }

@@ -1,8 +1,11 @@
 package com.ccs.ipc.service;
 
 import com.ccs.ipc.dto.doctordto.*;
+import com.ccs.ipc.dto.patientdto.DoctorSimpleResponse;
 import com.ccs.ipc.entity.DoctorInfo;
 import com.baomidou.mybatisplus.extension.service.IService;
+
+import java.util.List;
 
 /**
  * <p>
@@ -39,4 +42,11 @@ public interface IDoctorInfoService extends IService<DoctorInfo> {
      * @return 问诊列表
      */
     ConsultationListResponse getConsultationList(Long doctorId, ConsultationListRequest request);
+
+    /**
+     * 获取可用的医生列表（用于患者选择医生）
+     *
+     * @return 医生列表
+     */
+    List<DoctorSimpleResponse> getAvailableDoctors();
 }

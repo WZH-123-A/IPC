@@ -64,10 +64,10 @@
         <el-table-column prop="startTime" label="开始时间" width="180" />
         <el-table-column prop="endTime" label="结束时间" width="180" />
         <el-table-column prop="createTime" label="创建时间" width="180" />
-        <el-table-column label="操作" width="150" fixed="right">
+        <el-table-column label="操作" width="180" fixed="right">
           <template #default="{ row }">
-            <el-button type="primary" link size="small" @click="handleViewDetail(row)">
-              查看详情
+            <el-button type="primary" link size="small" @click="handleStartConsultation(row)">
+              开始问诊
             </el-button>
             <el-button v-if="row.status === 0" type="success" link size="small" @click="handleEndConsultation(row)">
               结束问诊
@@ -117,7 +117,8 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
-import { getConsultationListApi, type Consultation, type ConsultationListParams } from '../../api/doctor'
+import { useRouter } from 'vue-router'
+import { getConsultationListApi, endConsultation, type Consultation, type ConsultationListParams } from '../../api/doctor'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
 const loading = ref(false)
@@ -133,6 +134,7 @@ const pagination = reactive({
   size: 10,
   total: 0,
 })
+const router = useRouter()
 const detailDialogVisible = ref(false)
 const currentConsultation = ref<Consultation | null>(null)
 
@@ -198,9 +200,12 @@ const handleCurrentChange = (current: number) => {
   loadData()
 }
 
-const handleViewDetail = (row: Consultation) => {
-  currentConsultation.value = row
-  detailDialogVisible.value = true
+const handleStartConsultation = (row: Consultation) => {
+  // 跳转到问诊聊天页面
+  router.push({
+    name: 'doctor-consultation-chat',
+    query: { sessionId: row.id },
+  })
 }
 
 const handleEndConsultation = async (row: Consultation) => {
@@ -210,11 +215,14 @@ const handleEndConsultation = async (row: Consultation) => {
       cancelButtonText: '取消',
       type: 'warning',
     })
-    // TODO: 调用结束问诊API
+    await endConsultation(row.id)
     ElMessage.success('问诊已结束')
     loadData()
-  } catch (error) {
-    // 用户取消
+  } catch (error: unknown) {
+    if (error !== 'cancel') {
+      const message = error instanceof Error ? error.message : '结束问诊失败'
+      ElMessage.error(message)
+    }
   }
 }
 

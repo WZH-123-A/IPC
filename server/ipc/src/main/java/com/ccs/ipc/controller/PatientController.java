@@ -42,6 +42,9 @@ public class PatientController {
     @Autowired
     private IDiseaseTypeService diseaseTypeService;
 
+    @Autowired
+    private IDoctorInfoService doctorInfoService;
+
     // ==================== 问诊相关接口 ====================
 
     /**
@@ -245,6 +248,20 @@ public class PatientController {
     public Response<List<DiseaseTypeResponse>> getDiseaseTypes() {
         try {
             List<DiseaseTypeResponse> response = diseaseTypeService.getAllDiseaseTypes();
+            return Response.success(response);
+        } catch (Exception e) {
+            return Response.fail(e.getMessage());
+        }
+    }
+
+    /**
+     * 获取可用的医生列表（用于选择医生）
+     */
+    @GetMapping("/consultation/doctors")
+    @RequirePermission("api:doctor-info:list")
+    public Response<List<com.ccs.ipc.dto.patientdto.DoctorSimpleResponse>> getAvailableDoctors() {
+        try {
+            List<com.ccs.ipc.dto.patientdto.DoctorSimpleResponse> response = doctorInfoService.getAvailableDoctors();
             return Response.success(response);
         } catch (Exception e) {
             return Response.fail(e.getMessage());

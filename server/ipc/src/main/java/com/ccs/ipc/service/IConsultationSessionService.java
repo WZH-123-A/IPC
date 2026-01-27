@@ -52,4 +52,12 @@ public interface IConsultationSessionService extends IService<ConsultationSessio
      * @param userId    患者ID
      */
     void endSession(Long sessionId, Long userId);
+
+    /**
+     * 医生结束问诊会话（验证权限）
+     *
+     * @param sessionId 会话ID
+     * @param doctorId  医生ID
+     */
+    void endSessionByDoctor(Long sessionId, Long doctorId);
 }

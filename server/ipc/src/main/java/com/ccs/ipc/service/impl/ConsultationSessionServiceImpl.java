@@ -108,6 +108,27 @@ public class ConsultationSessionServiceImpl extends ServiceImpl<ConsultationSess
         this.updateById(session);
     }
 
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void endSessionByDoctor(Long sessionId, Long doctorId) {
+        ConsultationSession session = this.getById(sessionId);
+        if (session == null || session.getIsDeleted() == 1) {
+            throw new RuntimeException("问诊会话不存在");
+        }
+
+        if (session.getSessionType() != 2) {
+            throw new RuntimeException("此会话不是医生问诊");
+        }
+
+        if (session.getDoctorId() == null || !session.getDoctorId().equals(doctorId)) {
+            throw new RuntimeException("无权操作此问诊会话");
+        }
+
+        session.setStatus((byte) 1); // 已结束
+        session.setEndTime(LocalDateTime.now());
+        this.updateById(session);
+    }
+
     private ConsultationSessionResponse convertToResponse(ConsultationSession session) {
         ConsultationSessionResponse response = new ConsultationSessionResponse();
         BeanUtils.copyProperties(session, response);

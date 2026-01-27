@@ -28,6 +28,18 @@ export interface ConsultationMessage {
   createTime: string
 }
 
+// 医生简单信息接口
+export interface DoctorSimple {
+  id: number
+  realName: string
+  avatar?: string
+  hospital?: string
+  department?: string
+  title?: string
+  specialty?: string
+  workYears?: number
+}
+
 // 创建问诊会话请求
 export interface CreateConsultationRequest {
   sessionType: number // 1-AI问诊 2-医生问诊
@@ -141,6 +153,16 @@ export const markMessageAsRead = async (
 ): Promise<ApiResponse<void>> => {
   const response = await request.post<ApiResponse<void>>(
     `/patient/consultation/messages/${messageId}/read`
+  )
+  return response.data
+}
+
+/**
+ * 获取可用的医生列表
+ */
+export const getAvailableDoctors = async (): Promise<ApiResponse<DoctorSimple[]>> => {
+  const response = await request.get<ApiResponse<DoctorSimple[]>>(
+    '/patient/consultation/doctors'
   )
   return response.data
 }

@@ -33,6 +33,11 @@ public class ConsultationResponse {
     private String patientName;
 
     /**
+     * 患者头像
+     */
+    private String patientAvatar;
+
+    /**
      * 医生ID（NULL表示AI问诊）
      */
     private Long doctorId;

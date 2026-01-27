@@ -11,6 +11,7 @@ import com.ccs.ipc.entity.ConsultationSession;
 import com.ccs.ipc.mapper.ConsultationMessageMapper;
 import com.ccs.ipc.service.IConsultationMessageService;
 import com.ccs.ipc.service.IConsultationSessionService;
+import com.ccs.ipc.websocket.WebSocketService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,6 +34,9 @@ public class ConsultationMessageServiceImpl extends ServiceImpl<ConsultationMess
 
     @Autowired
     private IConsultationSessionService consultationSessionService;
+
+    @Autowired
+    private WebSocketService webSocketService;
 
     @Override
     public ConsultationMessageListResponse getSessionMessages(Long sessionId, Long userId, ConsultationMessageListRequest request) {
@@ -92,9 +96,14 @@ public class ConsultationMessageServiceImpl extends ServiceImpl<ConsultationMess
 
         this.save(message);
 
+        ConsultationMessageResponse messageResponse = convertToResponse(message);
+
+        // 通过WebSocket推送消息到会话的所有参与者
+        webSocketService.sendMessageToSession(request.getSessionId(), messageResponse);
+
         // TODO: 如果是AI问诊，调用AI接口生成回复
 
-        return convertToResponse(message);
+        return messageResponse;
     }
 
     @Override
@@ -105,6 +114,78 @@ public class ConsultationMessageServiceImpl extends ServiceImpl<ConsultationMess
             message.setIsRead((byte) 1);
             this.updateById(message);
         }
+    }
+
+    @Override
+    public ConsultationMessageListResponse getDoctorSessionMessages(Long sessionId, Long doctorId, ConsultationMessageListRequest request) {
+        // 验证会话归属（医生问诊）
+        ConsultationSession session = consultationSessionService.getById(sessionId);
+        if (session == null || session.getIsDeleted() == 1) {
+            throw new RuntimeException("问诊会话不存在");
+        }
+        if (session.getSessionType() != 2) {
+            throw new RuntimeException("此会话不是医生问诊");
+        }
+        if (session.getDoctorId() == null || !session.getDoctorId().equals(doctorId)) {
+            throw new RuntimeException("无权访问此问诊会话");
+        }
+
+        Page<ConsultationMessage> page = new Page<>(request.getCurrent(), request.getSize());
+        LambdaQueryWrapper<ConsultationMessage> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(ConsultationMessage::getSessionId, sessionId)
+                .eq(ConsultationMessage::getIsDeleted, 0)
+                .orderByAsc(ConsultationMessage::getCreateTime);
+
+        Page<ConsultationMessage> result = this.page(page, queryWrapper);
+
+        ConsultationMessageListResponse response = new ConsultationMessageListResponse();
+        response.setTotal(result.getTotal());
+        response.setCurrent(result.getCurrent());
+        response.setSize(result.getSize());
+
+        List<ConsultationMessageResponse> responseList = result.getRecords().stream()
+                .map(this::convertToResponse)
+                .collect(Collectors.toList());
+        response.setRecords(responseList);
+
+        return response;
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public ConsultationMessageResponse sendDoctorMessage(Long doctorId, SendMessageRequest request) {
+        // 验证会话归属（医生问诊）
+        ConsultationSession session = consultationSessionService.getById(request.getSessionId());
+        if (session == null || session.getIsDeleted() == 1) {
+            throw new RuntimeException("问诊会话不存在");
+        }
+        if (session.getSessionType() != 2) {
+            throw new RuntimeException("此会话不是医生问诊");
+        }
+        if (session.getDoctorId() == null || !session.getDoctorId().equals(doctorId)) {
+            throw new RuntimeException("无权操作此问诊会话");
+        }
+        if (session.getStatus() != 0) {
+            throw new RuntimeException("问诊会话已结束或已取消");
+        }
+
+        ConsultationMessage message = new ConsultationMessage();
+        message.setSessionId(request.getSessionId());
+        message.setSenderId(doctorId);
+        message.setSenderType((byte) 2); // 医生
+        message.setMessageType(request.getMessageType());
+        message.setContent(request.getContent());
+        message.setIsRead((byte) 0);
+        message.setIsDeleted((byte) 0);
+
+        this.save(message);
+
+        ConsultationMessageResponse messageResponse = convertToResponse(message);
+
+        // 通过WebSocket推送消息到会话的所有参与者
+        webSocketService.sendMessageToSession(request.getSessionId(), messageResponse);
+
+        return messageResponse;
     }
 
     private ConsultationMessageResponse convertToResponse(ConsultationMessage message) {

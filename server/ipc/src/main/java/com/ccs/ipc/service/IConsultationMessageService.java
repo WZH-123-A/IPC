@@ -43,4 +43,23 @@ public interface IConsultationMessageService extends IService<ConsultationMessag
      * @param messageId 消息ID
      */
     void markAsRead(Long messageId);
+
+    /**
+     * 医生获取问诊消息列表（验证会话权限）
+     *
+     * @param sessionId 会话ID
+     * @param doctorId  医生ID
+     * @param request   查询请求
+     * @return 消息列表响应
+     */
+    ConsultationMessageListResponse getDoctorSessionMessages(Long sessionId, Long doctorId, ConsultationMessageListRequest request);
+
+    /**
+     * 医生发送消息（验证会话权限）
+     *
+     * @param doctorId 医生ID
+     * @param request  发送请求
+     * @return 消息响应
+     */
+    ConsultationMessageResponse sendDoctorMessage(Long doctorId, SendMessageRequest request);
 }
