@@ -1,6 +1,5 @@
 package com.ccs.ipc.service;
 
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.ccs.ipc.dto.patientdto.ConsultationMessageListRequest;
 import com.ccs.ipc.dto.patientdto.ConsultationMessageListResponse;
@@ -78,4 +77,5 @@ public interface IConsultationMessageService extends IService<ConsultationMessag
      * @return 消息响应
      */
     ConsultationMessageResponse sendDoctorMessage(Long doctorId, SendMessageRequest request);
+    
 }

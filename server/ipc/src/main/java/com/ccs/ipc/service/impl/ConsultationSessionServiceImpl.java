@@ -2,20 +2,29 @@ package com.ccs.ipc.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.ccs.ipc.dto.admindto.AdminConsultationSessionListRequest;
+import com.ccs.ipc.dto.admindto.AdminConsultationSessionListResponse;
+import com.ccs.ipc.dto.admindto.AdminConsultationSessionResponse;
 import com.ccs.ipc.dto.patientdto.ConsultationSessionListRequest;
 import com.ccs.ipc.dto.patientdto.ConsultationSessionListResponse;
 import com.ccs.ipc.dto.patientdto.ConsultationSessionResponse;
 import com.ccs.ipc.dto.patientdto.CreateConsultationSessionRequest;
 import com.ccs.ipc.entity.ConsultationSession;
+import com.ccs.ipc.entity.SysUser;
 import com.ccs.ipc.mapper.ConsultationSessionMapper;
 import com.ccs.ipc.service.IConsultationSessionService;
+import com.ccs.ipc.service.ISysUserService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.springframework.beans.BeanUtils;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -29,6 +38,9 @@ import java.util.stream.Collectors;
  */
 @Service
 public class ConsultationSessionServiceImpl extends ServiceImpl<ConsultationSessionMapper, ConsultationSession> implements IConsultationSessionService {
+
+    @Autowired
+    private ISysUserService sysUserService;
 
     @Override
     public ConsultationSessionListResponse getPatientSessions(Long userId, ConsultationSessionListRequest request) {
@@ -132,6 +144,117 @@ public class ConsultationSessionServiceImpl extends ServiceImpl<ConsultationSess
     private ConsultationSessionResponse convertToResponse(ConsultationSession session) {
         ConsultationSessionResponse response = new ConsultationSessionResponse();
         BeanUtils.copyProperties(session, response);
+        return response;
+    }
+
+    @Override
+    public AdminConsultationSessionListResponse getAdminSessionList(AdminConsultationSessionListRequest request) {
+        Page<ConsultationSession> page = new Page<>(request.getCurrent(), request.getSize());
+        LambdaQueryWrapper<ConsultationSession> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(ConsultationSession::getIsDeleted, 0);
+
+        // 条件查询
+        if (StringUtils.hasText(request.getSessionNo())) {
+            queryWrapper.like(ConsultationSession::getSessionNo, request.getSessionNo());
+        }
+        if (request.getPatientId() != null) {
+            queryWrapper.eq(ConsultationSession::getPatientId, request.getPatientId());
+        }
+        if (request.getDoctorId() != null) {
+            queryWrapper.eq(ConsultationSession::getDoctorId, request.getDoctorId());
+        }
+        if (request.getSessionType() != null) {
+            queryWrapper.eq(ConsultationSession::getSessionType, request.getSessionType());
+        }
+        if (request.getStatus() != null) {
+            queryWrapper.eq(ConsultationSession::getStatus, request.getStatus());
+        }
+
+        queryWrapper.orderByDesc(ConsultationSession::getCreateTime);
+        Page<ConsultationSession> result = this.page(page, queryWrapper);
+
+        AdminConsultationSessionListResponse response = new AdminConsultationSessionListResponse();
+        response.setTotal(result.getTotal());
+        response.setCurrent(result.getCurrent());
+        response.setSize(result.getSize());
+
+        // 获取所有患者和医生的ID
+        Set<Long> patientIds = result.getRecords().stream()
+                .map(ConsultationSession::getPatientId)
+                .filter(id -> id != null)
+                .collect(Collectors.toSet());
+        Set<Long> doctorIds = result.getRecords().stream()
+                .map(ConsultationSession::getDoctorId)
+                .filter(id -> id != null)
+                .collect(Collectors.toSet());
+
+        // 批量查询用户信息
+        Map<Long, String> patientNameMap = patientIds.isEmpty() ? Map.of() :
+                sysUserService.listByIds(patientIds).stream()
+                        .collect(Collectors.toMap(SysUser::getId, user -> 
+                                StringUtils.hasText(user.getRealName()) ? user.getRealName() : user.getUsername(), 
+                                (v1, v2) -> v1));
+        Map<Long, String> doctorNameMap = doctorIds.isEmpty() ? Map.of() :
+                sysUserService.listByIds(doctorIds).stream()
+                        .collect(Collectors.toMap(SysUser::getId, user -> 
+                                StringUtils.hasText(user.getRealName()) ? user.getRealName() : user.getUsername(), 
+                                (v1, v2) -> v1));
+
+        // 转换为响应DTO
+        List<AdminConsultationSessionResponse> responseList = result.getRecords().stream()
+                .map(session -> convertToAdminResponse(session, patientNameMap, doctorNameMap))
+                .collect(Collectors.toList());
+        response.setRecords(responseList);
+
+        return response;
+    }
+
+    @Override
+    public AdminConsultationSessionResponse getAdminSessionById(Long id) {
+        ConsultationSession session = this.getById(id);
+        if (session == null || session.getIsDeleted() == 1) {
+            throw new RuntimeException("问诊会话不存在");
+        }
+
+        // 获取患者和医生名称
+        Map<Long, String> patientNameMap = Map.of();
+        Map<Long, String> doctorNameMap = Map.of();
+
+        if (session.getPatientId() != null) {
+            SysUser patient = sysUserService.getById(session.getPatientId());
+            if (patient != null) {
+                String patientName = StringUtils.hasText(patient.getRealName()) ? patient.getRealName() : patient.getUsername();
+                patientNameMap = Map.of(session.getPatientId(), patientName);
+            }
+        }
+
+        if (session.getDoctorId() != null) {
+            SysUser doctor = sysUserService.getById(session.getDoctorId());
+            if (doctor != null) {
+                String doctorName = StringUtils.hasText(doctor.getRealName()) ? doctor.getRealName() : doctor.getUsername();
+                doctorNameMap = Map.of(session.getDoctorId(), doctorName);
+            }
+        }
+
+        return convertToAdminResponse(session, patientNameMap, doctorNameMap);
+    }
+
+    private AdminConsultationSessionResponse convertToAdminResponse(ConsultationSession session, 
+                                                               Map<Long, String> patientNameMap, 
+                                                               Map<Long, String> doctorNameMap) {
+        AdminConsultationSessionResponse response = new AdminConsultationSessionResponse();
+        BeanUtils.copyProperties(session, response);
+        
+        if (session.getPatientId() != null) {
+            response.setPatientName(patientNameMap.getOrDefault(session.getPatientId(), "未知患者"));
+        }
+        
+        if (session.getDoctorId() != null) {
+            response.setDoctorName(doctorNameMap.getOrDefault(session.getDoctorId(), "未知医生"));
+        } else if (session.getSessionType() == 1) {
+            response.setDoctorName("AI问诊");
+        }
+        
         return response;
     }
 }
