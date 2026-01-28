@@ -6,7 +6,9 @@ import com.ccs.ipc.common.enums.OperationModule;
 import com.ccs.ipc.common.enums.OperationType;
 import com.ccs.ipc.common.response.Response;
 import com.ccs.ipc.common.util.UserContext;
+import com.ccs.ipc.dto.common.FileUploadResponse;
 import com.ccs.ipc.dto.patientdto.*;
+import com.ccs.ipc.file.LocalFileStorageService;
 import com.ccs.ipc.service.*;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -44,6 +46,9 @@ public class PatientController {
 
     @Autowired
     private IDoctorInfoService doctorInfoService;
+
+    @Autowired
+    private LocalFileStorageService localFileStorageService;
 
     // ==================== 问诊相关接口 ====================
 
@@ -181,6 +186,24 @@ public class PatientController {
         try {
             consultationMessageService.markAllAsRead(sessionId, userId);
             return Response.success();
+        } catch (Exception e) {
+            return Response.fail(e.getMessage());
+        }
+    }
+
+    /**
+     * 上传问诊聊天文件（图片等），返回可访问的URL
+     */
+    @PostMapping("/consultation/upload")
+    @RequirePermission("api:consultation-message:create")
+    @Log(operationType = OperationType.ADD, operationModule = OperationModule.OTHER, operationDesc = "上传问诊聊天文件")
+    public Response<FileUploadResponse> uploadConsultationFile(
+            @RequestParam("file") MultipartFile file,
+            HttpServletRequest httpRequest) {
+        Long userId = UserContext.getUserId(httpRequest);
+        try {
+            FileUploadResponse resp = localFileStorageService.upload(file, userId, "consultation", null);
+            return Response.success(resp);
         } catch (Exception e) {
             return Response.fail(e.getMessage());
         }

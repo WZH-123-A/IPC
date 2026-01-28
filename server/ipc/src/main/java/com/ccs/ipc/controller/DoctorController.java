@@ -6,17 +6,20 @@ import com.ccs.ipc.common.enums.OperationModule;
 import com.ccs.ipc.common.enums.OperationType;
 import com.ccs.ipc.common.response.Response;
 import com.ccs.ipc.common.util.UserContext;
+import com.ccs.ipc.dto.common.FileUploadResponse;
 import com.ccs.ipc.dto.doctordto.*;
 import com.ccs.ipc.dto.patientdto.ConsultationMessageListRequest;
 import com.ccs.ipc.dto.patientdto.ConsultationMessageListResponse;
 import com.ccs.ipc.dto.patientdto.ConsultationMessageResponse;
 import com.ccs.ipc.dto.patientdto.SendMessageRequest;
+import com.ccs.ipc.file.LocalFileStorageService;
 import com.ccs.ipc.service.IConsultationMessageService;
 import com.ccs.ipc.service.IConsultationSessionService;
 import com.ccs.ipc.service.IDoctorInfoService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 /**
  * 医生管理控制器
@@ -36,6 +39,9 @@ public class DoctorController {
 
     @Autowired
     private IConsultationSessionService consultationSessionService;
+
+    @Autowired
+    private LocalFileStorageService localFileStorageService;
 
     /**
      * 获取医生首页数据
@@ -100,6 +106,24 @@ public class DoctorController {
         Long doctorId = UserContext.getUserId(httpRequest);
         ConsultationMessageResponse response = consultationMessageService.sendDoctorMessage(doctorId, request);
         return Response.success(response);
+    }
+
+    /**
+     * 上传问诊聊天文件（图片等），返回可访问的URL
+     */
+    @PostMapping("/consultations/upload")
+    @RequirePermission("api:consultation-message:create")
+    @Log(operationType = OperationType.ADD, operationModule = OperationModule.USER, operationDesc = "医生上传问诊聊天文件")
+    public Response<FileUploadResponse> uploadConsultationFile(
+            @RequestParam("file") MultipartFile file,
+            HttpServletRequest httpRequest) {
+        Long doctorId = UserContext.getUserId(httpRequest);
+        try {
+            FileUploadResponse resp = localFileStorageService.upload(file, doctorId, "consultation", null);
+            return Response.success(resp);
+        } catch (Exception e) {
+            return Response.fail(e.getMessage());
+        }
     }
 
     /**

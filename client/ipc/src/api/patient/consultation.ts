@@ -1,4 +1,5 @@
 import request, { type ApiResponse } from '../request'
+import { uploadPatientConsultationFile, type FileUploadResponse } from '../upload'
 
 // 问诊会话接口
 export interface ConsultationSession {
@@ -167,6 +168,15 @@ export const markAllMessagesAsRead = async (
     `/patient/consultation/sessions/${sessionId}/messages/mark-all-read`
   )
   return response.data
+}
+
+/**
+ * 上传问诊聊天文件（图片等）
+ */
+export const uploadConsultationFile = async (
+  file: File
+): Promise<ApiResponse<FileUploadResponse>> => {
+  return uploadPatientConsultationFile(file)
 }
 
 /**

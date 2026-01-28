@@ -6,16 +6,18 @@ import com.ccs.ipc.dto.patientdto.DiagnosisRecordListRequest;
 import com.ccs.ipc.dto.patientdto.DiagnosisRecordListResponse;
 import com.ccs.ipc.dto.patientdto.DiagnosisRecordResponse;
 import com.ccs.ipc.entity.SkinDiagnosisRecord;
+import com.ccs.ipc.dto.common.FileUploadResponse;
+import com.ccs.ipc.file.LocalFileStorageService;
 import com.ccs.ipc.mapper.SkinDiagnosisRecordMapper;
 import com.ccs.ipc.service.ISkinDiagnosisRecordService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.springframework.beans.BeanUtils;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**
@@ -29,6 +31,9 @@ import java.util.stream.Collectors;
 @Service
 public class SkinDiagnosisRecordServiceImpl extends ServiceImpl<SkinDiagnosisRecordMapper, SkinDiagnosisRecord> implements ISkinDiagnosisRecordService {
 
+    @Autowired
+    private LocalFileStorageService localFileStorageService;
+
     @Override
     @Transactional(rollbackFor = Exception.class)
     public DiagnosisRecordResponse uploadAndCreateRecord(Long userId, MultipartFile image, String bodyPart) {
@@ -36,9 +41,8 @@ public class SkinDiagnosisRecordServiceImpl extends ServiceImpl<SkinDiagnosisRec
             throw new RuntimeException("请选择要上传的图片");
         }
 
-        // TODO: 上传文件到文件服务，获取文件URL
-        // 这里暂时使用占位符
-        String imageUrl = "/uploads/diagnosis/" + UUID.randomUUID().toString() + ".jpg";
+        FileUploadResponse uploaded = localFileStorageService.upload(image, userId, "diagnosis", null);
+        String imageUrl = uploaded.getFileUrl();
         String imageName = image.getOriginalFilename();
 
         SkinDiagnosisRecord record = new SkinDiagnosisRecord();

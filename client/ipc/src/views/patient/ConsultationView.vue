@@ -52,6 +52,7 @@ import {
   getConsultationMessages,
   sendMessage,
   endConsultationSession,
+  uploadConsultationFile,
   type ConsultationSession,
   type ConsultationMessage,
 } from '../../api/patient/consultation'
@@ -303,9 +304,47 @@ const handleImageSelect = async (event: Event) => {
   const file = target.files?.[0]
   if (!file || !currentSessionId.value) return
 
-  // TODO: 实现图片上传和发送
-  ElMessage.info('图片上传功能开发中...')
-  target.value = ''
+  // 仅允许图片
+  if (!file.type.startsWith('image/')) {
+    ElMessage.warning('请选择图片文件')
+    target.value = ''
+    return
+  }
+
+  sending.value = true
+  try {
+    const uploadResp = await uploadConsultationFile(file)
+    const url = uploadResp.data?.fileUrl
+    if (!url) {
+      throw new Error('上传失败：未返回文件URL')
+    }
+
+    const response = await sendMessage({
+      sessionId: currentSessionId.value,
+      messageType: 2,
+      content: url,
+    })
+
+    // 乐观更新：立即在本地显示发送的消息
+    if (response.data) {
+      const exists = messages.value.some((m) => m.id === response.data.id)
+      if (!exists) {
+        messages.value.push(response.data)
+        nextTick(() => {
+          const messageListElement = document.querySelector('.messages-container')
+          if (messageListElement) {
+            messageListElement.scrollTop = messageListElement.scrollHeight
+          }
+        })
+      }
+    }
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : '图片发送失败'
+    ElMessage.error(msg)
+  } finally {
+    sending.value = false
+    target.value = ''
+  }
 }
 
 watch(showImagePicker, (val) => {

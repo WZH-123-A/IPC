@@ -116,6 +116,7 @@ import { User, Loading, Picture } from '@element-plus/icons-vue'
 import {
   getConsultationMessages,
   sendDoctorMessage,
+  uploadConsultationFile,
   endConsultation,
   type ConsultationMessage,
 } from '../../api/doctor'
@@ -263,9 +264,41 @@ const handleImageSelect = async (event: Event) => {
   const file = target.files?.[0]
   if (!file || !props.session) return
 
-  // TODO: 实现图片上传和发送
-  ElMessage.info('图片上传功能开发中...')
-  target.value = ''
+  if (!file.type.startsWith('image/')) {
+    ElMessage.warning('请选择图片文件')
+    target.value = ''
+    return
+  }
+
+  sending.value = true
+  try {
+    const uploaded = await uploadConsultationFile(file)
+    if (!uploaded?.fileUrl) {
+      throw new Error('上传失败：未返回文件URL')
+    }
+
+    const response = await sendDoctorMessage({
+      sessionId: props.session.id,
+      messageType: 2,
+      content: uploaded.fileUrl,
+    })
+
+    if (response) {
+      const exists = messages.value.some((m) => m.id === response.id)
+      if (!exists) {
+        messages.value.push(response)
+        scrollToBottom()
+      }
+    }
+
+    emit('messageSent')
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : '图片发送失败'
+    ElMessage.error(msg)
+  } finally {
+    sending.value = false
+    target.value = ''
+  }
 }
 
 // 监听会话变化

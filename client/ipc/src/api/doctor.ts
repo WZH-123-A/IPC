@@ -1,4 +1,5 @@
 import request, { type ApiResponse } from './request'
+import { uploadDoctorConsultationFile, type FileUploadResponse } from './upload'
 
 // ==================== 医生管理 ====================
 
@@ -151,6 +152,13 @@ export const sendDoctorMessage = async (data: SendDoctorMessageRequest) => {
     data
   )
   return response.data.data
+}
+
+/**
+ * 上传问诊聊天文件（图片等）
+ */
+export const uploadConsultationFile = async (file: File) => {
+  return uploadDoctorConsultationFile(file)
 }
 
 /**
