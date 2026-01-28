@@ -162,3 +162,13 @@ export const endConsultation = async (sessionId: number) => {
   )
   return response.data.data
 }
+
+/**
+ * 批量标记会话的所有未读消息为已读（医生）
+ */
+export const markAllMessagesAsRead = async (sessionId: number) => {
+  const response = await request.post<ApiResponse<void>>(
+    `/doctor/consultations/${sessionId}/messages/mark-all-read`
+  )
+  return response.data.data
+}

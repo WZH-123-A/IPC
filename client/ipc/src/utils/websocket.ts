@@ -163,7 +163,7 @@ export class WebSocketClient {
       }
 
       this.ws.onmessage = (event) => {
-        console.log('收到 WebSocket 消息:', event.data)
+        console.log('收到 WebSocket 原始消息:', event.data)
         this.handleStompMessage(event.data)
       }
 
@@ -247,7 +247,12 @@ export class WebSocketClient {
    */
   private handleStompMessage(data: string): void {
     const frame = this.parseStompFrame(data)
-    if (!frame) return
+    if (!frame) {
+      console.warn('无法解析STOMP帧，原始数据:', data)
+      return
+    }
+
+    console.log('处理STOMP帧，命令:', frame.command, 'destination:', frame.headers['destination'])
 
     switch (frame.command) {
       case 'CONNECTED':
@@ -260,6 +265,7 @@ export class WebSocketClient {
         this.resubscribeAll()
         break
       case 'MESSAGE':
+        console.log('收到MESSAGE帧，准备处理消息')
         this.handleMessage(frame)
         break
       case 'ERROR':
@@ -282,22 +288,43 @@ export class WebSocketClient {
    */
   private handleMessage(frame: StompFrame): void {
     const destination = frame.headers['destination']
-    if (!destination) return
+    if (!destination) {
+      console.warn('WebSocket消息缺少destination', frame)
+      return
+    }
+
+    console.log('WebSocket收到消息，destination:', destination, 'body:', frame.body)
 
     const callback = this.subscriptions.get(destination)
-    if (!callback) return
+    if (!callback) {
+      console.warn('WebSocket消息没有对应的订阅回调，destination:', destination, '当前订阅:', Array.from(this.subscriptions.keys()))
+      return
+    }
 
     try {
       // 判断是消息还是状态更新
       if (destination.includes('/status')) {
         const status = parseInt(frame.body || '0', 10)
+        console.log('WebSocket状态更新:', status)
         callback(status)
       } else {
-        const message = JSON.parse(frame.body || '{}') as WebSocketMessage
-        callback(message)
+        if (!frame.body) {
+          console.error('消息体为空，无法解析')
+          return
+        }
+        console.log('准备解析消息JSON，body:', frame.body)
+        const message = JSON.parse(frame.body) as WebSocketMessage
+        console.log('WebSocket解析消息成功:', message)
+        // 确保回调被调用
+        if (typeof callback === 'function') {
+          callback(message)
+          console.log('消息回调已执行')
+        } else {
+          console.error('回调不是函数:', typeof callback, callback)
+        }
       }
     } catch (error) {
-      console.error('解析消息失败:', error)
+      console.error('解析消息失败:', error, 'frame body:', frame.body)
     }
   }
 
@@ -343,32 +370,49 @@ export class WebSocketClient {
    * 解析STOMP帧
    */
   private parseStompFrame(data: string): StompFrame | null {
-    const lines = data.split('\n')
+    // 移除末尾的\0字符（如果存在）
+    const cleanData = data.replace(/\0+$/, '')
+    const lines = cleanData.split('\n')
     if (lines.length < 1) return null
 
-    const command = lines[0]
+    const command = lines[0]?.trim()
+    if (!command) return null
+
     const headers: Record<string, string> = {}
-    let bodyStartIndex = 1
+    let bodyStartIndex = -1
 
     // 解析headers
     for (let i = 1; i < lines.length; i++) {
       const line = lines[i]
-      if (!line) continue
-      if (line === '') {
+      if (line === undefined) continue
+      // 遇到空行，表示headers结束，body开始
+      if (line === '' || line.trim() === '') {
         bodyStartIndex = i + 1
         break
       }
       const colonIndex = line.indexOf(':')
       if (colonIndex > 0) {
-        const key = line.substring(0, colonIndex)
-        const value = line.substring(colonIndex + 1)
-        headers[key] = value
+        const key = line.substring(0, colonIndex).trim()
+        const value = line.substring(colonIndex + 1).trim()
+        if (key) {
+          headers[key] = value
+        }
       }
     }
 
     // 解析body
-    const bodyLines = lines.slice(bodyStartIndex)
-    const bodyStr = bodyLines.length > 0 ? bodyLines.join('\n').replace(/\0$/, '') : undefined
+    let bodyStr: string | undefined = undefined
+    if (bodyStartIndex > 0 && bodyStartIndex < lines.length) {
+      // body可能包含多行，需要合并
+      bodyStr = lines.slice(bodyStartIndex).join('\n').trim()
+      // 移除末尾的\0字符（如果存在）
+      bodyStr = bodyStr.replace(/\0+$/, '')
+      if (bodyStr === '') {
+        bodyStr = undefined
+      }
+    }
+
+    console.log('解析STOMP帧结果:', { command, headers, bodyLength: bodyStr?.length || 0 })
 
     return {
       command,
@@ -421,18 +465,24 @@ export class WebSocketClient {
     const destination = `/topic/consultation/${sessionId}`
     const subscriptionId = `sub-${++this.subscriptionIdCounter}`
 
+    console.log('订阅WebSocket会话消息，sessionId:', sessionId, 'destination:', destination, 'subscriptionId:', subscriptionId)
+
     // 发送SUBSCRIBE帧
     const subscribeFrame = this.createStompFrame('SUBSCRIBE', {
       'id': subscriptionId,
       'destination': destination
     })
     this.sendStompFrame(subscribeFrame)
+    console.log('已发送SUBSCRIBE帧')
 
     this.subscriptions.set(destination, callback as (message: WebSocketMessage | number) => void)
     this.subscriptionsMap.set(destination, subscriptionId)
 
+    console.log('订阅已保存，当前订阅列表:', Array.from(this.subscriptions.keys()))
+
     // 返回取消订阅的函数
     return () => {
+      console.log('取消订阅，destination:', destination)
       const subId = this.subscriptionsMap.get(destination)
       if (subId) {
         const ws = this.ws

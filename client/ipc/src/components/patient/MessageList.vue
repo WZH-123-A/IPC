@@ -78,13 +78,18 @@ const scrollToBottom = () => {
   }
 }
 
+// 监听消息数组变化，确保新消息自动滚动
 watch(
-  () => props.messages.length,
-  () => {
-    nextTick(() => {
-      scrollToBottom()
-    })
-  }
+  () => props.messages,
+  (newMessages, oldMessages) => {
+    // 如果消息数量增加，说明有新消息
+    if (newMessages.length > (oldMessages?.length || 0)) {
+      nextTick(() => {
+        scrollToBottom()
+      })
+    }
+  },
+  { deep: true }
 )
 
 onMounted(() => {

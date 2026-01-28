@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { loginApi, logoutApi, refreshPermissionsApi, type LoginParams, type UserInfo, type UserRole } from '../api/auth'
 import { extractPermissionCodes, extractPermissionCodesByType } from '../api/userPermissions'
+import { websocketClient } from '../utils/websocket'
 
 export const useAuthStore = defineStore('auth', () => {
   const token = ref<string | null>(localStorage.getItem('token') || null)
@@ -116,6 +117,15 @@ export const useAuthStore = defineStore('auth', () => {
         sessionStorage.setItem('token', response.token)
         sessionStorage.setItem('userInfo', JSON.stringify(userInfoData))
       }
+      
+      // 登录成功后连接WebSocket
+      try {
+        await websocketClient.connect(response.token)
+        console.log('WebSocket连接成功')
+      } catch (error) {
+        console.error('WebSocket连接失败:', error)
+        // WebSocket连接失败不影响登录流程
+      }
     } catch (error: unknown) {
       // 清除可能的部分状态
       token.value = null
@@ -134,6 +144,13 @@ export const useAuthStore = defineStore('auth', () => {
       // 即使 API 调用失败，也清除本地状态
       console.error('登出 API 调用失败:', error)
     } finally {
+      // 断开WebSocket连接
+      try {
+        websocketClient.disconnect()
+      } catch (error) {
+        console.error('断开WebSocket连接失败:', error)
+      }
+      
       // 清除状态
       token.value = null
       userInfo.value = null

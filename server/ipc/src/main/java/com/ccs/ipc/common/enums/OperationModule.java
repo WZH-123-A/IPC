@@ -62,6 +62,11 @@ public enum OperationModule {
     SYSTEM("系统配置"),
 
     /**
+     * 问诊
+     */
+    CONSULTATION_SESSION("问诊会话"),
+
+    /**
      * 其他
      */
     OTHER("其他");

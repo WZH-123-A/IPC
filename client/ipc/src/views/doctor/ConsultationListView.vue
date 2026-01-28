@@ -10,20 +10,40 @@
       <!-- 搜索表单 -->
       <el-form :model="searchForm" :inline="true" class="search-form">
         <el-form-item label="患者姓名">
-          <el-input v-model="searchForm.patientName" placeholder="请输入患者姓名" clearable style="width: 200px" />
+          <el-input
+            v-model="searchForm.patientName"
+            placeholder="请输入患者姓名"
+            clearable
+            style="width: 200px"
+          />
         </el-form-item>
         <el-form-item label="问诊标题">
-          <el-input v-model="searchForm.title" placeholder="请输入问诊标题" clearable style="width: 200px" />
+          <el-input
+            v-model="searchForm.title"
+            placeholder="请输入问诊标题"
+            clearable
+            style="width: 200px"
+          />
         </el-form-item>
         <el-form-item label="状态">
-          <el-select v-model="searchForm.status" placeholder="请选择状态" clearable style="width: 150px">
+          <el-select
+            v-model="searchForm.status"
+            placeholder="请选择状态"
+            clearable
+            style="width: 150px"
+          >
             <el-option label="进行中" :value="0" />
             <el-option label="已结束" :value="1" />
             <el-option label="已取消" :value="2" />
           </el-select>
         </el-form-item>
         <el-form-item label="会话类型">
-          <el-select v-model="searchForm.sessionType" placeholder="请选择类型" clearable style="width: 150px">
+          <el-select
+            v-model="searchForm.sessionType"
+            placeholder="请选择类型"
+            clearable
+            style="width: 150px"
+          >
             <el-option label="AI问诊" :value="1" />
             <el-option label="医生问诊" :value="2" />
           </el-select>
@@ -55,7 +75,11 @@
         </el-table-column>
         <el-table-column prop="unreadCount" label="未读消息" width="100">
           <template #default="{ row }">
-            <el-badge v-if="row.unreadCount && row.unreadCount > 0" :value="row.unreadCount" class="item">
+            <el-badge
+              v-if="row.unreadCount && row.unreadCount > 0"
+              :value="row.unreadCount"
+              class="item"
+            >
               <span>{{ row.unreadCount }}</span>
             </el-badge>
             <span v-else>0</span>
@@ -69,7 +93,13 @@
             <el-button type="primary" link size="small" @click="handleStartConsultation(row)">
               开始问诊
             </el-button>
-            <el-button v-if="row.status === 0" type="success" link size="small" @click="handleEndConsultation(row)">
+            <el-button
+              v-if="row.status === 0"
+              type="success"
+              link
+              size="small"
+              @click="handleEndConsultation(row)"
+            >
               结束问诊
             </el-button>
           </template>
@@ -93,9 +123,15 @@
     <!-- 问诊详情对话框 -->
     <el-dialog v-model="detailDialogVisible" title="问诊详情" width="800px">
       <el-descriptions v-if="currentConsultation" :column="2" border>
-        <el-descriptions-item label="会话编号">{{ currentConsultation.sessionNo }}</el-descriptions-item>
-        <el-descriptions-item label="患者姓名">{{ currentConsultation.patientName || '-' }}</el-descriptions-item>
-        <el-descriptions-item label="问诊标题" :span="2">{{ currentConsultation.title || '-' }}</el-descriptions-item>
+        <el-descriptions-item label="会话编号">{{
+          currentConsultation.sessionNo
+        }}</el-descriptions-item>
+        <el-descriptions-item label="患者姓名">{{
+          currentConsultation.patientName || '-'
+        }}</el-descriptions-item>
+        <el-descriptions-item label="问诊标题" :span="2">{{
+          currentConsultation.title || '-'
+        }}</el-descriptions-item>
         <el-descriptions-item label="会话类型">
           <el-tag :type="currentConsultation.sessionType === 1 ? 'info' : 'success'">
             {{ currentConsultation.sessionType === 1 ? 'AI问诊' : '医生问诊' }}
@@ -106,20 +142,35 @@
             {{ getStatusText(currentConsultation.status) }}
           </el-tag>
         </el-descriptions-item>
-        <el-descriptions-item label="开始时间">{{ currentConsultation.startTime || '-' }}</el-descriptions-item>
-        <el-descriptions-item label="结束时间">{{ currentConsultation.endTime || '-' }}</el-descriptions-item>
-        <el-descriptions-item label="未读消息数">{{ currentConsultation.unreadCount || 0 }}</el-descriptions-item>
-        <el-descriptions-item label="创建时间">{{ currentConsultation.createTime }}</el-descriptions-item>
+        <el-descriptions-item label="开始时间">{{
+          currentConsultation.startTime || '-'
+        }}</el-descriptions-item>
+        <el-descriptions-item label="结束时间">{{
+          currentConsultation.endTime || '-'
+        }}</el-descriptions-item>
+        <el-descriptions-item label="未读消息数">{{
+          currentConsultation.unreadCount || 0
+        }}</el-descriptions-item>
+        <el-descriptions-item label="创建时间">{{
+          currentConsultation.createTime
+        }}</el-descriptions-item>
       </el-descriptions>
     </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { getConsultationListApi, endConsultation, type Consultation, type ConsultationListParams } from '../../api/doctor'
+import {
+  getConsultationListApi,
+  endConsultation,
+  type Consultation,
+  type ConsultationListParams,
+} from '../../api/doctor'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { useConsultationMessageStore } from '../../stores/consultationMessage'
+import type { WebSocketMessage } from '../../utils/websocket'
 
 const loading = ref(false)
 const tableData = ref<Consultation[]>([])
@@ -137,6 +188,9 @@ const pagination = reactive({
 const router = useRouter()
 const detailDialogVisible = ref(false)
 const currentConsultation = ref<Consultation | null>(null)
+
+// WebSocket订阅管理
+const sessionSubscriptions = new Map<number, () => void>()
 
 const getStatusText = (status: number) => {
   const statusMap: Record<number, string> = {
@@ -169,11 +223,37 @@ const loadData = async () => {
     pagination.total = response.total
     pagination.current = response.current
     pagination.size = response.size
-  } catch (error: any) {
-    ElMessage.error(error.message || '加载数据失败')
+    
+    // 为所有会话订阅WebSocket消息（用于接收未读消息，更新未读数）
+    subscribeToAllSessions(response.records)
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : '加载数据失败'
+    ElMessage.error(message)
   } finally {
     loading.value = false
   }
+}
+
+// 使用消息分发中心订阅所有会话消息
+const subscribeToAllSessions = (sessions: Consultation[]) => {
+  // 先取消之前的订阅
+  sessionSubscriptions.forEach((unsubscribe) => unsubscribe())
+  sessionSubscriptions.clear()
+  
+  const messageStore = useConsultationMessageStore()
+  
+  // 为每个会话订阅消息（通过消息分发中心）
+  sessions.forEach((session) => {
+    const unsubscribe = messageStore.subscribeSession(session.id, (message: WebSocketMessage) => {
+      console.log('问诊管理页面：收到消息分发中心的消息', message.sessionId, '当前会话框未打开，只刷新列表')
+      // 收到消息时，如果会话框没有打开，只刷新列表（更新未读数），不标记为已读
+      loadData() // 刷新列表，更新未读数
+    })
+    sessionSubscriptions.set(session.id, unsubscribe)
+    
+    // 确保该会话已添加到消息分发中心
+    messageStore.addSession(session.id)
+  })
 }
 
 const handleSearch = () => {
@@ -228,6 +308,12 @@ const handleEndConsultation = async (row: Consultation) => {
 
 onMounted(() => {
   loadData()
+})
+
+onUnmounted(() => {
+  // 取消所有订阅
+  sessionSubscriptions.forEach((unsubscribe) => unsubscribe())
+  sessionSubscriptions.clear()
 })
 </script>
 

@@ -118,8 +118,9 @@ const loadData = async () => {
     pagination.total = response.total
     pagination.current = response.current
     pagination.size = response.size
-  } catch (error: any) {
-    ElMessage.error(error.message || '加载数据失败')
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : '加载数据失败'
+    ElMessage.error(message)
   } finally {
     loading.value = false
   }

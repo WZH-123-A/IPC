@@ -35,6 +35,11 @@
           <el-tag :type="getStatusType(session.status)" size="small">
             {{ getStatusText(session.status) }}
           </el-tag>
+          <el-badge
+            v-if="getSessionUnreadCount(session.id) > 0"
+            :value="getSessionUnreadCount(session.id)"
+            class="session-unread-badge"
+          />
         </div>
       </div>
       <div v-if="filteredSessions.length === 0" class="empty-sessions">
@@ -50,6 +55,7 @@
 import { ref, computed } from 'vue'
 import { ChatDotRound, UserFilled } from '@element-plus/icons-vue'
 import type { ConsultationSession } from '../../api/patient/consultation'
+import { useUnreadStore } from '../../stores/unread'
 
 interface Props {
   sessions: ConsultationSession[]
@@ -57,6 +63,12 @@ interface Props {
 }
 
 const props = defineProps<Props>()
+const unreadStore = useUnreadStore()
+
+// 获取会话的未读数（从 UnreadStore 读取）
+const getSessionUnreadCount = (sessionId: number): number => {
+  return unreadStore.get(sessionId)
+}
 
 defineEmits<{
   select: [sessionId: number]
@@ -213,6 +225,13 @@ const getStatusText = (status: number) => {
 
 .session-status {
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.session-unread-badge {
+  margin-left: 4px;
 }
 
 .empty-sessions {

@@ -9,9 +9,17 @@
 
       <!-- 欢迎信息 -->
       <div class="welcome-section">
-        <h2>欢迎，{{ doctorHome?.doctorInfo?.realName || authStore.userInfo?.realName || authStore.userInfo?.username }} 医生</h2>
+        <h2>
+          欢迎，{{
+            doctorHome?.doctorInfo?.realName ||
+            authStore.userInfo?.realName ||
+            authStore.userInfo?.username
+          }}
+          医生
+        </h2>
         <p v-if="doctorHome?.doctorInfo">
-          {{ doctorHome.doctorInfo.hospital }} - {{ doctorHome.doctorInfo.department }} - {{ doctorHome.doctorInfo.title }}
+          {{ doctorHome.doctorInfo.hospital }} - {{ doctorHome.doctorInfo.department }} -
+          {{ doctorHome.doctorInfo.title }}
         </p>
       </div>
 
@@ -77,15 +85,33 @@
           <span>医生信息</span>
         </template>
         <el-descriptions :column="2" border>
-          <el-descriptions-item label="用户名">{{ doctorHome.doctorInfo.username }}</el-descriptions-item>
-          <el-descriptions-item label="真实姓名">{{ doctorHome.doctorInfo.realName || '-' }}</el-descriptions-item>
-          <el-descriptions-item label="手机号">{{ doctorHome.doctorInfo.phone || '-' }}</el-descriptions-item>
-          <el-descriptions-item label="邮箱">{{ doctorHome.doctorInfo.email || '-' }}</el-descriptions-item>
-          <el-descriptions-item label="所属医院">{{ doctorHome.doctorInfo.hospital || '-' }}</el-descriptions-item>
-          <el-descriptions-item label="科室">{{ doctorHome.doctorInfo.department || '-' }}</el-descriptions-item>
-          <el-descriptions-item label="职称">{{ doctorHome.doctorInfo.title || '-' }}</el-descriptions-item>
-          <el-descriptions-item label="从业年限">{{ doctorHome.doctorInfo.workYears ? `${doctorHome.doctorInfo.workYears}年` : '-' }}</el-descriptions-item>
-          <el-descriptions-item label="擅长领域" :span="2">{{ doctorHome.doctorInfo.specialty || '-' }}</el-descriptions-item>
+          <el-descriptions-item label="用户名">{{
+            doctorHome.doctorInfo.username
+          }}</el-descriptions-item>
+          <el-descriptions-item label="真实姓名">{{
+            doctorHome.doctorInfo.realName || '-'
+          }}</el-descriptions-item>
+          <el-descriptions-item label="手机号">{{
+            doctorHome.doctorInfo.phone || '-'
+          }}</el-descriptions-item>
+          <el-descriptions-item label="邮箱">{{
+            doctorHome.doctorInfo.email || '-'
+          }}</el-descriptions-item>
+          <el-descriptions-item label="所属医院">{{
+            doctorHome.doctorInfo.hospital || '-'
+          }}</el-descriptions-item>
+          <el-descriptions-item label="科室">{{
+            doctorHome.doctorInfo.department || '-'
+          }}</el-descriptions-item>
+          <el-descriptions-item label="职称">{{
+            doctorHome.doctorInfo.title || '-'
+          }}</el-descriptions-item>
+          <el-descriptions-item label="从业年限">{{
+            doctorHome.doctorInfo.workYears ? `${doctorHome.doctorInfo.workYears}年` : '-'
+          }}</el-descriptions-item>
+          <el-descriptions-item label="擅长领域" :span="2">{{
+            doctorHome.doctorInfo.specialty || '-'
+          }}</el-descriptions-item>
         </el-descriptions>
       </el-card>
     </el-card>
@@ -107,8 +133,9 @@ const loadData = async () => {
   try {
     loading.value = true
     doctorHome.value = await getDoctorHomeApi()
-  } catch (error: any) {
-    ElMessage.error(error.message || '加载数据失败')
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : '加载数据失败'
+    ElMessage.error(message)
   } finally {
     loading.value = false
   }

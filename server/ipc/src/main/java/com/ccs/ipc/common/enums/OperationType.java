@@ -63,6 +63,16 @@ public enum OperationType {
     AUTHORIZE("授权"),
 
     /**
+     * 发送消息
+     */
+    SEND("发送消息"),
+
+    /**
+     * 结束会诊
+     */
+    END_CONSULTATION("结束会诊"),
+
+    /**
      * 其他
      */
     OTHER("其他");

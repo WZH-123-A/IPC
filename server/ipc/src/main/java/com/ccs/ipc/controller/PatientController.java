@@ -169,6 +169,23 @@ public class PatientController {
         }
     }
 
+    /**
+     * 批量标记会话的所有未读消息为已读
+     */
+    @PostMapping("/consultation/sessions/{sessionId}/messages/mark-all-read")
+    @RequirePermission("api:consultation-message:update")
+    public Response<Void> markAllMessagesAsRead(
+            @PathVariable Long sessionId,
+            HttpServletRequest httpRequest) {
+        Long userId = UserContext.getUserId(httpRequest);
+        try {
+            consultationMessageService.markAllAsRead(sessionId, userId);
+            return Response.success();
+        } catch (Exception e) {
+            return Response.fail(e.getMessage());
+        }
+    }
+
     // ==================== 诊断相关接口 ====================
 
     /**

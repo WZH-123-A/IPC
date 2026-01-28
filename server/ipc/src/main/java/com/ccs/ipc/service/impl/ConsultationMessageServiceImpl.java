@@ -117,6 +117,55 @@ public class ConsultationMessageServiceImpl extends ServiceImpl<ConsultationMess
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void markAllAsRead(Long sessionId, Long userId) {
+        // 验证会话归属
+        ConsultationSession session = consultationSessionService.getById(sessionId);
+        if (session == null || session.getIsDeleted() == 1) {
+            throw new RuntimeException("问诊会话不存在");
+        }
+        if (!session.getPatientId().equals(userId)) {
+            throw new RuntimeException("无权操作此问诊会话");
+        }
+
+        // 批量更新该会话中所有未读消息为已读
+        LambdaQueryWrapper<ConsultationMessage> updateWrapper = new LambdaQueryWrapper<>();
+        updateWrapper.eq(ConsultationMessage::getSessionId, sessionId)
+                .eq(ConsultationMessage::getIsRead, 0)
+                .eq(ConsultationMessage::getIsDeleted, 0);
+
+        ConsultationMessage updateMessage = new ConsultationMessage();
+        updateMessage.setIsRead((byte) 1);
+        this.update(updateMessage, updateWrapper);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void markAllAsReadByDoctor(Long sessionId, Long doctorId) {
+        // 验证会话归属（医生问诊）
+        ConsultationSession session = consultationSessionService.getById(sessionId);
+        if (session == null || session.getIsDeleted() == 1) {
+            throw new RuntimeException("问诊会话不存在");
+        }
+        if (session.getSessionType() != 2) {
+            throw new RuntimeException("此会话不是医生问诊");
+        }
+        if (session.getDoctorId() == null || !session.getDoctorId().equals(doctorId)) {
+            throw new RuntimeException("无权操作此问诊会话");
+        }
+
+        // 批量更新该会话中所有未读消息为已读
+        LambdaQueryWrapper<ConsultationMessage> updateWrapper = new LambdaQueryWrapper<>();
+        updateWrapper.eq(ConsultationMessage::getSessionId, sessionId)
+                .eq(ConsultationMessage::getIsRead, 0)
+                .eq(ConsultationMessage::getIsDeleted, 0);
+
+        ConsultationMessage updateMessage = new ConsultationMessage();
+        updateMessage.setIsRead((byte) 1);
+        this.update(updateMessage, updateWrapper);
+    }
+
+    @Override
     public ConsultationMessageListResponse getDoctorSessionMessages(Long sessionId, Long doctorId, ConsultationMessageListRequest request) {
         // 验证会话归属（医生问诊）
         ConsultationSession session = consultationSessionService.getById(sessionId);

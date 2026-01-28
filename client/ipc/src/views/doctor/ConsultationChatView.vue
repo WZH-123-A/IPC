@@ -39,12 +39,12 @@
             :class="['session-item', { active: currentSessionId === session.id }]"
             @click="selectSession(session.id)"
           >
-            <el-avatar :src="session.patientAvatar" :size="48" class="session-avatar">
+            <el-avatar :src="(session as Consultation).patientAvatar" :size="48" class="session-avatar">
               <el-icon><User /></el-icon>
             </el-avatar>
             <div class="session-info">
               <div class="session-header">
-                <span class="patient-name">{{ session.patientName || '患者' }}</span>
+                <span class="patient-name">{{ (session as Consultation).patientName || '患者' }}</span>
                 <span class="session-time">{{ formatTime(session.createTime) }}</span>
               </div>
               <div class="session-title">{{ session.title || '问诊会话' }}</div>
@@ -52,7 +52,10 @@
                 <el-tag :type="getStatusType(session.status)" size="small">
                   {{ getStatusText(session.status) }}
                 </el-tag>
-                <el-badge v-if="session.unreadCount && session.unreadCount > 0" :value="session.unreadCount" />
+                <el-badge
+                  v-if="getSessionUnreadCount(session.id) > 0"
+                  :value="getSessionUnreadCount(session.id)"
+                />
               </div>
             </div>
           </div>
@@ -66,8 +69,8 @@
             :page-sizes="[10, 20, 50]"
             layout="prev, pager, next"
             small
-            @size-change="loadSessions"
-            @current-change="loadSessions"
+            @size-change="(size: number) => { sessionListStore.setPagination(pagination.current, size); loadSessions() }"
+            @current-change="(current: number) => { sessionListStore.setPagination(current, pagination.size); loadSessions() }"
           />
         </div>
       </div>
@@ -83,6 +86,7 @@
           :doctor-avatar="authStore.userInfo?.avatar"
           @message-sent="handleMessageSent"
           @session-ended="handleSessionEnded"
+          @messages-read="handleMessagesRead"
         />
       </div>
     </div>
@@ -90,17 +94,24 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted, onUnmounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { ElMessage } from 'element-plus'
-import { User, Loading, Search } from '@element-plus/icons-vue'
+import { User, Loading } from '@element-plus/icons-vue'
 import { useAuthStore } from '../../stores/auth'
-import { getConsultationListApi, type Consultation, type ConsultationListParams } from '../../api/doctor'
+import { useChatStore } from '../../stores/chat'
+import { useSessionListStore } from '../../stores/sessionList'
+import { useUnreadStore } from '../../stores/unread'
+import { useConsultationMessageStore } from '../../stores/consultationMessage'
+import type { Consultation } from '../../api/doctor'
 import ConsultationChat from '../../components/doctor/ConsultationChat.vue'
-import { websocketClient, WebSocketStatus } from '../../utils/websocket'
+import type { WebSocketMessage } from '../../utils/websocket'
 
 const authStore = useAuthStore()
+const chatStore = useChatStore()
+const sessionListStore = useSessionListStore()
+const unreadStore = useUnreadStore()
+const messageStore = useConsultationMessageStore()
 
-const sessions = ref<Consultation[]>([])
 const currentSessionId = ref<number | null>(null)
 
 // 定义聊天组件需要的会话类型
@@ -114,30 +125,27 @@ type ChatSession = {
 }
 
 const currentSession = ref<ChatSession | null>(null)
-const loading = ref(false)
 const searchKeyword = ref('')
-const pagination = reactive({
-  current: 1,
-  size: 20,
-  total: 0,
-})
 
-const stats = reactive({
-  todayCount: 0,
-  ongoingCount: 0,
-})
+// 从 store 读取会话列表和状态
+const sessions = computed(() => sessionListStore.sessions)
+const loading = computed(() => sessionListStore.loading)
+const pagination = computed(() => sessionListStore.pagination)
+const stats = computed(() => sessionListStore.stats)
 
 // 过滤后的会话列表
 const filteredSessions = computed(() => {
   if (!searchKeyword.value) return sessions.value
-  
+
   const keyword = searchKeyword.value.toLowerCase()
-  return sessions.value.filter(
-    (s) =>
-      s.patientName?.toLowerCase().includes(keyword) ||
-      s.title?.toLowerCase().includes(keyword) ||
-      s.sessionNo?.toLowerCase().includes(keyword)
-  )
+  return sessions.value.filter((s) => {
+    const consultation = s as Consultation
+    return (
+      consultation.patientName?.toLowerCase().includes(keyword) ||
+      consultation.title?.toLowerCase().includes(keyword) ||
+      consultation.sessionNo?.toLowerCase().includes(keyword)
+    )
+  })
 })
 
 // 格式化时间
@@ -146,11 +154,11 @@ const formatTime = (time: string) => {
   const now = new Date()
   const diff = now.getTime() - date.getTime()
   const minutes = Math.floor(diff / 60000)
-  
+
   if (minutes < 1) return '刚刚'
   if (minutes < 60) return `${minutes}分钟前`
   if (minutes < 1440) return `${Math.floor(minutes / 60)}小时前`
-  
+
   return date.toLocaleString('zh-CN', {
     month: '2-digit',
     day: '2-digit',
@@ -177,39 +185,20 @@ const getStatusType = (status: number): 'success' | 'warning' | 'danger' | 'info
   return typeMap[status] || 'info'
 }
 
-// 加载会话列表
+// 加载会话列表（从 store 调用）
 const loadSessions = async () => {
-  loading.value = true
   try {
-    const params: ConsultationListParams = {
-      current: pagination.current,
-      size: pagination.size,
-    }
-    const response = await getConsultationListApi(params)
-    sessions.value = response.records || []
-    pagination.total = response.total || 0
-    pagination.current = response.current || 1
-    pagination.size = response.size || 20
-    
-    // 更新统计
-    stats.todayCount = sessions.value.filter((s) => {
-      const today = new Date()
-      const createTime = new Date(s.createTime)
-      return createTime.toDateString() === today.toDateString()
-    }).length
-    stats.ongoingCount = sessions.value.filter((s) => s.status === 0).length
+    await sessionListStore.loadSessions()
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : '加载问诊列表失败'
     ElMessage.error(message)
-  } finally {
-    loading.value = false
   }
 }
 
 // 选择会话
 const selectSession = (sessionId: number) => {
   currentSessionId.value = sessionId
-  const session = sessions.value.find((s) => s.id === sessionId)
+  const session = sessions.value.find((s) => s.id === sessionId) as Consultation | undefined
   if (session) {
     currentSession.value = {
       id: session.id,
@@ -222,47 +211,48 @@ const selectSession = (sessionId: number) => {
   }
 }
 
+// 获取会话的未读数（从 UnreadStore 读取）
+const getSessionUnreadCount = (sessionId: number): number => {
+  return unreadStore.get(sessionId)
+}
+
 // 搜索
 const handleSearch = () => {
   // 搜索在 computed 中自动处理
 }
 
-// 消息发送后刷新
+// 消息发送后处理（事件驱动，不需要手动刷新）
 const handleMessageSent = () => {
-  loadSessions()
+  // 消息已通过 WebSocket 实时更新，不需要手动刷新列表
 }
 
-// 会话结束后刷新
+// 会话结束后处理（事件驱动）
 const handleSessionEnded = () => {
-  loadSessions()
   if (currentSession.value) {
     currentSession.value.status = 1
+    // 更新 store 中的会话状态
+    sessionListStore.updateSessionStatus(currentSession.value.id, 1)
   }
 }
 
-// WebSocket状态监听
-let unsubscribeStatusChange: (() => void) | null = null
+// 消息标记为已读后处理（事件驱动，不需要手动刷新）
+const handleMessagesRead = () => {
+  // 未读数已通过 UnreadStore 实时更新，不需要手动刷新列表
+}
+
+// 消息订阅取消函数
+let unsubscribeGlobalMessages: (() => void) | null = null
 
 onMounted(async () => {
-  // 连接WebSocket
-  if (authStore.token) {
-    try {
-      await websocketClient.connect(authStore.token)
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'WebSocket连接失败'
-      console.error(message)
-    }
-  }
-  
-  // 监听WebSocket状态
-  unsubscribeStatusChange = websocketClient.onStatusChange((status) => {
-    if (status === WebSocketStatus.CONNECTED) {
-      ElMessage.success('实时消息连接成功')
-    }
-  })
-  
+  // 初始加载会话列表
   await loadSessions()
-  
+
+  // 订阅全局消息，响应消息变化自动更新列表
+  unsubscribeGlobalMessages = messageStore.subscribeGlobal((message: WebSocketMessage) => {
+    // 处理新消息，更新会话列表
+    sessionListStore.handleNewMessage(message)
+  })
+
   // 检查URL参数，如果有sessionId则自动选择
   const urlParams = new URLSearchParams(window.location.search)
   const sessionId = urlParams.get('sessionId')
@@ -272,11 +262,12 @@ onMounted(async () => {
 })
 
 onUnmounted(() => {
-  if (unsubscribeStatusChange) {
-    unsubscribeStatusChange()
-    unsubscribeStatusChange = null
+  if (unsubscribeGlobalMessages) {
+    unsubscribeGlobalMessages()
+    unsubscribeGlobalMessages = null
   }
-  websocketClient.disconnect()
+  // 关闭当前会话
+  chatStore.closeSession()
 })
 </script>
 
@@ -446,4 +437,3 @@ onUnmounted(() => {
   justify-content: center;
 }
 </style>
-

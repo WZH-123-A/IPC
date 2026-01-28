@@ -48,11 +48,7 @@
       </el-menu>
 
       <div class="sidebar-footer">
-        <el-button
-          text
-          class="collapse-btn"
-          @click="toggleCollapse"
-        >
+        <el-button text class="collapse-btn" @click="toggleCollapse">
           <el-icon><component :is="isCollapsed ? Expand : Fold" /></el-icon>
         </el-button>
       </div>
@@ -72,10 +68,14 @@
           <el-dropdown @command="handleCommand" trigger="click">
             <div class="user-info">
               <el-avatar :size="36" :src="authStore.userInfo?.avatar">
-                {{ authStore.userInfo?.realName?.charAt(0) || authStore.userInfo?.username?.charAt(0) }}
+                {{
+                  authStore.userInfo?.realName?.charAt(0) || authStore.userInfo?.username?.charAt(0)
+                }}
               </el-avatar>
               <div class="user-details">
-                <div class="user-name">{{ authStore.userInfo?.realName || authStore.userInfo?.username }}</div>
+                <div class="user-name">
+                  {{ authStore.userInfo?.realName || authStore.userInfo?.username }}
+                </div>
                 <div class="user-role">医生</div>
               </div>
               <el-icon class="arrow-icon"><ArrowDown /></el-icon>
@@ -109,11 +109,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '../../stores/auth'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { getConsultationListApi } from '../../api/doctor'
+import { useConsultationMessageStore } from '../../stores/consultationMessage'
+import { useUnreadStore } from '../../stores/unread'
+import { websocketClient, WebSocketStatus } from '../../utils/websocket'
 import {
   HomeFilled,
   ChatDotRound,
@@ -130,43 +132,33 @@ import {
 const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
+const messageStore = useConsultationMessageStore()
+const unreadStore = useUnreadStore()
 
 const isCollapsed = ref(false)
-const unreadCount = ref(0)
 
-// 加载未读消息数
-const loadUnreadCount = async () => {
-  try {
-    const response = await getConsultationListApi({ current: 1, size: 100, status: 0 })
-    const totalUnread = response.records?.reduce((sum, item) => sum + (item.unreadCount || 0), 0) || 0
-    unreadCount.value = totalUnread
-  } catch (error: unknown) {
-    console.error('加载未读消息数失败:', error)
+// 从 UnreadStore 读取总未读数（单一事实源）
+const unreadCount = computed(() => unreadStore.totalUnreadCount)
+
+onMounted(async () => {
+  // 监听 WebSocket 连接状态，连接成功后初始化消息分发中心
+  // 消息分发中心会负责初始化未读数 store（单一事实源）
+  const statusUnsubscribe = websocketClient.onStatusChange(async (status) => {
+    if (status === WebSocketStatus.CONNECTED) {
+      console.log('布局组件：WebSocket已连接，初始化消息分发中心')
+      await messageStore.initialize()
+    }
+  })
+
+  // 如果已经连接，立即初始化
+  if (websocketClient.isConnected()) {
+    await messageStore.initialize()
   }
-}
 
-// 定时刷新未读消息数
-let unreadCountInterval: number | null = null
-
-onMounted(() => {
-  loadUnreadCount()
-  // 每30秒刷新一次未读消息数
-  unreadCountInterval = window.setInterval(() => {
-    loadUnreadCount()
-  }, 30000)
-})
-
-onUnmounted(() => {
-  if (unreadCountInterval) {
-    clearInterval(unreadCountInterval)
-  }
-})
-
-// 监听路由变化，刷新未读消息数
-watch(() => route.path, () => {
-  if (route.path.startsWith('/doctor')) {
-    loadUnreadCount()
-  }
+  // 保存状态监听器
+  onUnmounted(() => {
+    statusUnsubscribe()
+  })
 })
 
 // 当前激活的菜单
@@ -207,7 +199,9 @@ const handleCommand = async (command: string) => {
       ElMessage.success('已退出登录')
       router.push('/login')
     } catch (error: unknown) {
-      // 用户取消
+      if (error instanceof Error) {
+        ElMessage.error(error.message)
+      }
     }
   } else if (command === 'profile') {
     ElMessage.info('个人中心功能开发中...')
@@ -416,4 +410,3 @@ const handleCommand = async (command: string) => {
   }
 }
 </style>
-

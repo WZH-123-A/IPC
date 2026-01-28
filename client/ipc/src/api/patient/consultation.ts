@@ -158,6 +158,18 @@ export const markMessageAsRead = async (
 }
 
 /**
+ * 批量标记会话的所有未读消息为已读
+ */
+export const markAllMessagesAsRead = async (
+  sessionId: number
+): Promise<ApiResponse<void>> => {
+  const response = await request.post<ApiResponse<void>>(
+    `/patient/consultation/sessions/${sessionId}/messages/mark-all-read`
+  )
+  return response.data
+}
+
+/**
  * 获取可用的医生列表
  */
 export const getAvailableDoctors = async (): Promise<ApiResponse<DoctorSimple[]>> => {

@@ -60,7 +60,11 @@
                 {{ message.content }}
               </div>
               <div v-else-if="message.messageType === 2" class="image-message">
-                <el-image :src="message.content" :preview-src-list="[message.content]" fit="cover" />
+                <el-image
+                  :src="message.content"
+                  :preview-src-list="[message.content]"
+                  fit="cover"
+                />
               </div>
             </div>
           </div>
@@ -86,16 +90,12 @@
         />
         <div class="input-footer">
           <span class="hint">Ctrl + Enter 发送</span>
-          <el-button type="primary" :loading="sending" @click="handleSend">
-            发送
-          </el-button>
+          <el-button type="primary" :loading="sending" @click="handleSend"> 发送 </el-button>
         </div>
       </div>
     </div>
     <div v-else class="chat-input-disabled">
-      <el-alert type="info" :closable="false">
-        问诊已结束，无法继续发送消息
-      </el-alert>
+      <el-alert type="info" :closable="false"> 问诊已结束，无法继续发送消息 </el-alert>
     </div>
 
     <!-- 图片选择器 -->
@@ -113,9 +113,15 @@
 import { ref, watch, nextTick, onMounted, onUnmounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { User, Loading, Picture } from '@element-plus/icons-vue'
-import { useAuthStore } from '../../stores/auth'
-import { getConsultationMessages, sendDoctorMessage, endConsultation, type ConsultationMessage } from '../../api/doctor'
-import { websocketClient, type WebSocketMessage, WebSocketStatus } from '../../utils/websocket'
+import {
+  getConsultationMessages,
+  sendDoctorMessage,
+  endConsultation,
+  type ConsultationMessage,
+} from '../../api/doctor'
+import { useConsultationMessageStore } from '../../stores/consultationMessage'
+import { useChatStore } from '../../stores/chat'
+import type { WebSocketMessage } from '../../utils/websocket'
 
 interface Props {
   session: {
@@ -134,9 +140,9 @@ const props = defineProps<Props>()
 const emit = defineEmits<{
   messageSent: []
   sessionEnded: []
+  messagesRead: []
 }>()
 
-const authStore = useAuthStore()
 const messages = ref<ConsultationMessage[]>([])
 const inputMessage = ref('')
 const sending = ref(false)
@@ -144,6 +150,8 @@ const loadingMessages = ref(false)
 const showImagePicker = ref(false)
 const imageInput = ref<HTMLInputElement | null>(null)
 const messagesContainer = ref<HTMLElement | null>(null)
+const messageStore = useConsultationMessageStore()
+const chatStore = useChatStore()
 
 let unsubscribeMessage: (() => void) | null = null
 
@@ -153,11 +161,11 @@ const formatTime = (time: string) => {
   const now = new Date()
   const diff = now.getTime() - date.getTime()
   const minutes = Math.floor(diff / 60000)
-  
+
   if (minutes < 1) return '刚刚'
   if (minutes < 60) return `${minutes}分钟前`
   if (minutes < 1440) return `${Math.floor(minutes / 60)}小时前`
-  
+
   return date.toLocaleString('zh-CN', {
     month: '2-digit',
     day: '2-digit',
@@ -178,7 +186,7 @@ const scrollToBottom = () => {
 // 加载消息
 const loadMessages = async () => {
   if (!props.session) return
-  
+
   loadingMessages.value = true
   try {
     const response = await getConsultationMessages(props.session.id, { current: 1, size: 100 })
@@ -195,18 +203,28 @@ const loadMessages = async () => {
 // 发送消息
 const handleSend = async () => {
   if (!props.session || !inputMessage.value.trim() || sending.value) return
-  
+
   const content = inputMessage.value.trim()
   inputMessage.value = ''
   sending.value = true
-  
+
   try {
-    await sendDoctorMessage({
+    const response = await sendDoctorMessage({
       sessionId: props.session.id,
       messageType: 1,
       content,
     })
-    // 消息会通过WebSocket推送，这里不需要手动添加
+
+    // 乐观更新：立即在本地显示发送的消息，确保实时性
+    if (response) {
+      const exists = messages.value.some((m) => m.id === response.id)
+      if (!exists) {
+        messages.value.push(response)
+        scrollToBottom()
+      }
+    }
+
+    // 通知父组件消息已发送（用于刷新会话列表等）
     emit('messageSent')
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : '发送消息失败'
@@ -220,14 +238,14 @@ const handleSend = async () => {
 // 结束问诊
 const handleEndSession = async () => {
   if (!props.session) return
-  
+
   try {
     await ElMessageBox.confirm('确定要结束此次问诊吗？', '提示', {
       confirmButtonText: '确定',
       cancelButtonText: '取消',
       type: 'warning',
     })
-    
+
     await endConsultation(props.session.id)
     ElMessage.success('问诊已结束')
     emit('sessionEnded')
@@ -251,39 +269,54 @@ const handleImageSelect = async (event: Event) => {
 }
 
 // 监听会话变化
-watch(() => props.session?.id, (newId) => {
-  // 取消之前的订阅
-  if (unsubscribeMessage) {
-    unsubscribeMessage()
-    unsubscribeMessage = null
-  }
-  
-  if (newId) {
-    loadMessages()
-    
-    // 订阅WebSocket消息
-    if (websocketClient.isConnected()) {
-      try {
-        unsubscribeMessage = websocketClient.subscribeToSession(newId, (message: WebSocketMessage) => {
-          const exists = messages.value.some((m) => m.id === message.id)
-          if (!exists) {
-            messages.value.push(message as ConsultationMessage)
-            scrollToBottom()
-          }
-        })
-      } catch (error: unknown) {
-        console.error('订阅WebSocket失败:', error)
-      }
+watch(
+  () => props.session?.id,
+  async (newId) => {
+    // 取消之前的订阅
+    if (unsubscribeMessage) {
+      unsubscribeMessage()
+      unsubscribeMessage = null
     }
-  } else {
-    messages.value = []
-  }
-}, { immediate: true })
+
+    if (!newId) {
+      messages.value = []
+      chatStore.closeSession()
+      return
+    }
+
+    // 加载历史消息
+    await loadMessages()
+
+    // 通知 store 打开会话（统一处理已读逻辑）
+    await chatStore.openSession(newId)
+
+    // 订阅消息更新
+    unsubscribeMessage = messageStore.subscribeSession(newId, (message: WebSocketMessage) => {
+      // 组件不判断消息归属，只负责展示
+      const exists = messages.value.some((m) => m.id === message.id)
+      if (!exists) {
+        messages.value = [...messages.value, message as ConsultationMessage]
+        scrollToBottom()
+      }
+    })
+
+    // 确保该会话已添加到消息分发中心
+    messageStore.addSession(newId)
+  },
+  { immediate: true },
+)
 
 // 监听消息变化，自动滚动
-watch(messages, () => {
-  scrollToBottom()
-})
+watch(
+  () => messages.value,
+  (newMessages, oldMessages) => {
+    // 如果消息数量增加，说明有新消息，自动滚动
+    if (newMessages.length > (oldMessages?.length || 0)) {
+      scrollToBottom()
+    }
+  },
+  { deep: true },
+)
 
 // 监听图片选择器
 watch(showImagePicker, (val) => {
@@ -491,4 +524,3 @@ onUnmounted(() => {
   border-top: 1px solid #e4e7ed;
 }
 </style>
-

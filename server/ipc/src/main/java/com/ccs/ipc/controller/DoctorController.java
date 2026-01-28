@@ -115,4 +115,22 @@ public class DoctorController {
         consultationSessionService.endSessionByDoctor(sessionId, doctorId);
         return Response.success();
     }
+
+    /**
+     * 批量标记会话的所有未读消息为已读（医生）
+     */
+    @PostMapping("/consultations/{sessionId}/messages/mark-all-read")
+    @RequirePermission("api:consultation-message:update")
+    @Log(operationType = OperationType.UPDATE, operationModule = OperationModule.USER, operationDesc = "医生批量标记消息为已读")
+    public Response<Void> markAllMessagesAsRead(
+            @PathVariable Long sessionId,
+            HttpServletRequest httpRequest) {
+        Long doctorId = UserContext.getUserId(httpRequest);
+        try {
+            consultationMessageService.markAllAsReadByDoctor(sessionId, doctorId);
+            return Response.success();
+        } catch (Exception e) {
+            return Response.fail(e.getMessage());
+        }
+    }
 }

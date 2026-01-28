@@ -45,6 +45,22 @@ public interface IConsultationMessageService extends IService<ConsultationMessag
     void markAsRead(Long messageId);
 
     /**
+     * 批量标记会话的所有未读消息为已读（患者）
+     *
+     * @param sessionId 会话ID
+     * @param userId    患者ID
+     */
+    void markAllAsRead(Long sessionId, Long userId);
+
+    /**
+     * 批量标记会话的所有未读消息为已读（医生）
+     *
+     * @param sessionId 会话ID
+     * @param doctorId  医生ID
+     */
+    void markAllAsReadByDoctor(Long sessionId, Long doctorId);
+
+    /**
      * 医生获取问诊消息列表（验证会话权限）
      *
      * @param sessionId 会话ID
