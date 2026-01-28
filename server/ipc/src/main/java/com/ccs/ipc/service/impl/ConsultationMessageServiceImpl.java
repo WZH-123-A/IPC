@@ -8,17 +8,21 @@ import com.ccs.ipc.dto.patientdto.ConsultationMessageResponse;
 import com.ccs.ipc.dto.patientdto.SendMessageRequest;
 import com.ccs.ipc.entity.ConsultationMessage;
 import com.ccs.ipc.entity.ConsultationSession;
+import com.ccs.ipc.ai.QwenAiProperties;
+import com.ccs.ipc.ai.QwenAiService;
 import com.ccs.ipc.mapper.ConsultationMessageMapper;
 import com.ccs.ipc.service.IConsultationMessageService;
 import com.ccs.ipc.service.IConsultationSessionService;
 import com.ccs.ipc.websocket.WebSocketService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Collections;
 import java.util.stream.Collectors;
 
 /**
@@ -29,6 +33,7 @@ import java.util.stream.Collectors;
  * @author WZH
  * @since 2026-01-19
  */
+@Slf4j
 @Service
 public class ConsultationMessageServiceImpl extends ServiceImpl<ConsultationMessageMapper, ConsultationMessage> implements IConsultationMessageService {
 
@@ -37,6 +42,12 @@ public class ConsultationMessageServiceImpl extends ServiceImpl<ConsultationMess
 
     @Autowired
     private WebSocketService webSocketService;
+
+    @Autowired
+    private QwenAiService qwenAiService;
+
+    @Autowired
+    private QwenAiProperties qwenAiProperties;
 
     @Override
     public ConsultationMessageListResponse getSessionMessages(Long sessionId, Long userId, ConsultationMessageListRequest request) {
@@ -101,9 +112,65 @@ public class ConsultationMessageServiceImpl extends ServiceImpl<ConsultationMess
         // 通过WebSocket推送消息到会话的所有参与者
         webSocketService.sendMessageToSession(request.getSessionId(), messageResponse);
 
-        // TODO: 如果是AI问诊，调用AI接口生成回复
+        // AI问诊：自动生成AI回复并推送（失败不影响用户消息发送）
+        if (session.getSessionType() != null && session.getSessionType() == 1) {
+            try {
+                int maxHistory = qwenAiProperties.getMaxHistoryMessages() != null ? qwenAiProperties.getMaxHistoryMessages() : 20;
+                List<ConsultationMessage> history = getRecentMessagesForAi(request.getSessionId(), maxHistory);
+                String reply = qwenAiService.generateReply(session.getTitle(), history);
+
+                ConsultationMessage aiMessage = new ConsultationMessage();
+                aiMessage.setSessionId(request.getSessionId());
+                aiMessage.setSenderId(0L);
+                aiMessage.setSenderType((byte) 3); // AI
+                aiMessage.setMessageType((byte) 1); // 文本
+                aiMessage.setContent(reply);
+                aiMessage.setAiModel(qwenAiProperties.getModel());
+                aiMessage.setIsRead((byte) 0);
+                aiMessage.setIsDeleted((byte) 0);
+                this.save(aiMessage);
+
+                ConsultationMessageResponse aiResponse = convertToResponse(aiMessage);
+                webSocketService.sendMessageToSession(request.getSessionId(), aiResponse);
+            } catch (Exception e) {
+                log.warn("AI问诊回复生成失败(sessionId={}): {}", request.getSessionId(), e.getMessage());
+                try {
+                    ConsultationMessage aiMessage = new ConsultationMessage();
+                    aiMessage.setSessionId(request.getSessionId());
+                    aiMessage.setSenderId(0L);
+                    aiMessage.setSenderType((byte) 3); // AI
+                    aiMessage.setMessageType((byte) 1); // 文本
+                    aiMessage.setContent("AI暂时不可用，请稍后再试。");
+                    aiMessage.setAiModel(qwenAiProperties.getModel());
+                    aiMessage.setIsRead((byte) 0);
+                    aiMessage.setIsDeleted((byte) 0);
+                    this.save(aiMessage);
+
+                    ConsultationMessageResponse aiResponse = convertToResponse(aiMessage);
+                    webSocketService.sendMessageToSession(request.getSessionId(), aiResponse);
+                } catch (Exception ignored) {
+                    // 兜底：不影响主流程
+                }
+            }
+        }
 
         return messageResponse;
+    }
+
+    /**
+     * AI上下文：取最近N条消息（按时间正序）
+     */
+    private List<ConsultationMessage> getRecentMessagesForAi(Long sessionId, int maxCount) {
+        if (sessionId == null || maxCount <= 0) return Collections.emptyList();
+        LambdaQueryWrapper<ConsultationMessage> qw = new LambdaQueryWrapper<>();
+        qw.eq(ConsultationMessage::getSessionId, sessionId)
+                .eq(ConsultationMessage::getIsDeleted, 0)
+                .orderByDesc(ConsultationMessage::getCreateTime)
+                .last("LIMIT " + maxCount);
+        List<ConsultationMessage> list = this.list(qw);
+        if (list == null || list.isEmpty()) return Collections.emptyList();
+        Collections.reverse(list);
+        return list;
     }
 
     @Override
