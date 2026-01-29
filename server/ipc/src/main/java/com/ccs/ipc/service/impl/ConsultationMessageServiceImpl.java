@@ -327,6 +327,17 @@ public class ConsultationMessageServiceImpl extends ServiceImpl<ConsultationMess
         return response;
     }
 
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void deleteAdminMessage(Long id) {
+        ConsultationMessage message = this.getById(id);
+        if (message == null || message.getIsDeleted() == 1) {
+            throw new RuntimeException("问诊消息不存在");
+        }
+        message.setIsDeleted((byte) 1);
+        this.updateById(message);
+    }
+
     private ConsultationMessageResponse convertToResponse(ConsultationMessage message) {
         ConsultationMessageResponse response = new ConsultationMessageResponse();
         BeanUtils.copyProperties(message, response);

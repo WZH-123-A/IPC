@@ -70,6 +70,19 @@
             {{ formatTime(row.createTime) }}
           </template>
         </el-table-column>
+        <el-table-column label="操作" width="100" fixed="right">
+          <template #default="{ row }">
+            <el-button
+              v-permission="'consultation:message:delete'"
+              type="danger"
+              link
+              size="small"
+              @click="handleDelete(row)"
+            >
+              删除
+            </el-button>
+          </template>
+        </el-table-column>
       </el-table>
 
       <AdminPagination
@@ -90,9 +103,11 @@ import { ElMessage } from 'element-plus'
 import AdminPagination from '../../../components/admin/AdminPagination.vue'
 import {
   getConsultationMessageListApi,
+  deleteConsultationMessageApi,
   type ConsultationMessage,
   type ConsultationMessageListParams,
 } from '../../../api/admin/consultation'
+import { ElMessageBox } from 'element-plus'
 
 const loading = ref(false)
 const dataList = ref<ConsultationMessage[]>([])
@@ -183,6 +198,24 @@ const formatTime = (time?: string) => {
     minute: '2-digit',
     second: '2-digit',
   })
+}
+
+const handleDelete = async (row: ConsultationMessage) => {
+  try {
+    await ElMessageBox.confirm('确定要删除该消息吗？删除后不可恢复。', '提示', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning',
+    })
+    await deleteConsultationMessageApi(row.id)
+    ElMessage.success('删除成功')
+    loadMessageList()
+  } catch (error: unknown) {
+    if ((error as string) !== 'cancel') {
+      const message = error instanceof Error ? error.message : '删除失败'
+      ElMessage.error(message)
+    }
+  }
 }
 
 onMounted(() => {

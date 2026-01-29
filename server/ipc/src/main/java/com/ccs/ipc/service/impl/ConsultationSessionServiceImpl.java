@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.ccs.ipc.dto.admindto.AdminConsultationSessionListRequest;
 import com.ccs.ipc.dto.admindto.AdminConsultationSessionListResponse;
 import com.ccs.ipc.dto.admindto.AdminConsultationSessionResponse;
+import com.ccs.ipc.dto.admindto.AdminConsultationSessionUpdateRequest;
 import com.ccs.ipc.dto.patientdto.ConsultationSessionListRequest;
 import com.ccs.ipc.dto.patientdto.ConsultationSessionListResponse;
 import com.ccs.ipc.dto.patientdto.ConsultationSessionResponse;
@@ -237,6 +238,36 @@ public class ConsultationSessionServiceImpl extends ServiceImpl<ConsultationSess
         }
 
         return convertToAdminResponse(session, patientNameMap, doctorNameMap);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void updateAdminSession(Long id, AdminConsultationSessionUpdateRequest request) {
+        ConsultationSession session = this.getById(id);
+        if (session == null || session.getIsDeleted() == 1) {
+            throw new RuntimeException("问诊会话不存在");
+        }
+        if (request.getTitle() != null) {
+            session.setTitle(request.getTitle());
+        }
+        if (request.getStatus() != null) {
+            session.setStatus(request.getStatus());
+            if (request.getStatus() == 1) {
+                session.setEndTime(LocalDateTime.now());
+            }
+        }
+        this.updateById(session);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void deleteAdminSession(Long id) {
+        ConsultationSession session = this.getById(id);
+        if (session == null || session.getIsDeleted() == 1) {
+            throw new RuntimeException("问诊会话不存在");
+        }
+        session.setIsDeleted((byte) 1);
+        this.updateById(session);
     }
 
     private AdminConsultationSessionResponse convertToAdminResponse(ConsultationSession session, 

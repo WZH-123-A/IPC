@@ -94,8 +94,51 @@
       >
         查看详情
       </el-button>
+      <el-button
+        v-permission="'consultation:session:edit'"
+        type="primary"
+        link
+        size="small"
+        @click="handleEdit(row as ConsultationSession)"
+      >
+        编辑
+      </el-button>
+      <el-button
+        v-permission="'consultation:session:delete'"
+        type="danger"
+        link
+        size="small"
+        @click="handleDelete(row as ConsultationSession)"
+      >
+        删除
+      </el-button>
     </template>
   </BaseManageView>
+
+  <!-- 编辑对话框 -->
+  <el-dialog
+    v-model="editDialogVisible"
+    title="编辑问诊会话"
+    width="500px"
+    @close="editForm.sessionId = undefined; editForm.title = ''; editForm.status = undefined"
+  >
+    <el-form :model="editForm" label-width="90px">
+      <el-form-item label="问诊标题">
+        <el-input v-model="editForm.title" placeholder="问诊标题" clearable />
+      </el-form-item>
+      <el-form-item label="状态">
+        <el-select v-model="editForm.status" placeholder="请选择状态" clearable style="width: 100%">
+          <el-option label="进行中" :value="0" />
+          <el-option label="已结束" :value="1" />
+          <el-option label="已取消" :value="2" />
+        </el-select>
+      </el-form-item>
+    </el-form>
+    <template #footer>
+      <el-button @click="editDialogVisible = false">取消</el-button>
+      <el-button type="primary" :loading="editSubmitting" @click="submitEdit">确定</el-button>
+    </template>
+  </el-dialog>
 
   <!-- 详情对话框 -->
   <el-dialog
@@ -150,12 +193,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import { ElMessage } from 'element-plus'
+import { ref, reactive, onMounted } from 'vue'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import BaseManageView from '../../../components/admin/BaseManageView.vue'
 import {
   getConsultationSessionListApi,
   getConsultationSessionByIdApi,
+  updateConsultationSessionApi,
+  deleteConsultationSessionApi,
   type ConsultationSession,
   type ConsultationSessionListParams,
 } from '../../../api/admin/consultation'
@@ -163,6 +208,13 @@ import {
 const baseRef = ref<InstanceType<typeof BaseManageView>>()
 const detailDialogVisible = ref(false)
 const currentSession = ref<ConsultationSession | null>(null)
+const editDialogVisible = ref(false)
+const editSubmitting = ref(false)
+const editForm = reactive<{ sessionId?: number; title?: string; status?: number }>({
+  sessionId: undefined,
+  title: '',
+  status: undefined,
+})
 
 // 加载会话列表
 const loadSessionList = async () => {
@@ -213,6 +265,52 @@ const handleView = async (row: ConsultationSession) => {
 // 关闭详情对话框
 const handleDetailDialogClose = () => {
   currentSession.value = null
+}
+
+// 编辑
+const handleEdit = (row: ConsultationSession) => {
+  editForm.sessionId = row.id
+  editForm.title = row.title ?? ''
+  editForm.status = row.status
+  editDialogVisible.value = true
+}
+
+const submitEdit = async () => {
+  if (editForm.sessionId == null) return
+  editSubmitting.value = true
+  try {
+    await updateConsultationSessionApi(editForm.sessionId, {
+      title: editForm.title,
+      status: editForm.status,
+    })
+    ElMessage.success('更新成功')
+    editDialogVisible.value = false
+    loadSessionList()
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : '更新失败'
+    ElMessage.error(message)
+  } finally {
+    editSubmitting.value = false
+  }
+}
+
+// 删除
+const handleDelete = async (row: ConsultationSession) => {
+  try {
+    await ElMessageBox.confirm('确定要删除该问诊会话吗？删除后不可恢复。', '提示', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning',
+    })
+    await deleteConsultationSessionApi(row.id)
+    ElMessage.success('删除成功')
+    loadSessionList()
+  } catch (error: unknown) {
+    if ((error as string) !== 'cancel') {
+      const message = error instanceof Error ? error.message : '删除失败'
+      ElMessage.error(message)
+    }
+  }
 }
 
 // 格式化时间

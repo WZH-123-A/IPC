@@ -8,6 +8,7 @@ import com.ccs.ipc.common.response.Response;
 import com.ccs.ipc.dto.admindto.*;
 import com.ccs.ipc.dto.patientdto.ConsultationMessageListRequest;
 import com.ccs.ipc.dto.patientdto.ConsultationMessageListResponse;
+import jakarta.validation.Valid;
 import com.ccs.ipc.service.IConsultationEvaluationService;
 import com.ccs.ipc.service.IConsultationMessageService;
 import com.ccs.ipc.service.IConsultationSessionService;
@@ -78,6 +79,72 @@ public class ConsultationController {
     public Response<AdminConsultationEvaluationListResponse> getEvaluationList(AdminConsultationEvaluationListRequest request) {
         AdminConsultationEvaluationListResponse response = consultationEvaluationService.getAdminEvaluationList(request);
         return Response.success(response);
+    }
+
+    /**
+     * 管理员更新问诊会话（标题、状态）
+     */
+    @PutMapping("/sessions/{id}")
+    @RequirePermission("api:consultation-session:update")
+    @Log(operationType = OperationType.UPDATE, operationModule = OperationModule.CONSULTATION, operationDesc = "管理员更新问诊会话")
+    public Response<Void> updateSession(@PathVariable Long id, @RequestBody AdminConsultationSessionUpdateRequest request) {
+        consultationSessionService.updateAdminSession(id, request);
+        return Response.success();
+    }
+
+    /**
+     * 管理员逻辑删除问诊会话
+     */
+    @DeleteMapping("/sessions/{id}")
+    @RequirePermission("api:consultation-session:delete")
+    @Log(operationType = OperationType.DELETE, operationModule = OperationModule.CONSULTATION, operationDesc = "管理员删除问诊会话")
+    public Response<Void> deleteSession(@PathVariable Long id) {
+        consultationSessionService.deleteAdminSession(id);
+        return Response.success();
+    }
+
+    /**
+     * 管理员逻辑删除问诊消息
+     */
+    @DeleteMapping("/messages/{id}")
+    @RequirePermission("api:consultation-message:delete")
+    @Log(operationType = OperationType.DELETE, operationModule = OperationModule.CONSULTATION, operationDesc = "管理员删除问诊消息")
+    public Response<Void> deleteMessage(@PathVariable Long id) {
+        consultationMessageService.deleteAdminMessage(id);
+        return Response.success();
+    }
+
+    /**
+     * 管理员新增问诊评价
+     */
+    @PostMapping("/evaluations")
+    @RequirePermission("api:consultation-evaluation:create")
+    @Log(operationType = OperationType.ADD, operationModule = OperationModule.CONSULTATION, operationDesc = "管理员新增问诊评价")
+    public Response<AdminConsultationEvaluationResponse> createEvaluation(@Valid @RequestBody AdminConsultationEvaluationCreateRequest request) {
+        AdminConsultationEvaluationResponse response = consultationEvaluationService.createAdminEvaluation(request);
+        return Response.success(response);
+    }
+
+    /**
+     * 管理员更新问诊评价
+     */
+    @PutMapping("/evaluations/{id}")
+    @RequirePermission("api:consultation-evaluation:update")
+    @Log(operationType = OperationType.UPDATE, operationModule = OperationModule.CONSULTATION, operationDesc = "管理员更新问诊评价")
+    public Response<Void> updateEvaluation(@PathVariable Long id, @Valid @RequestBody AdminConsultationEvaluationUpdateRequest request) {
+        consultationEvaluationService.updateAdminEvaluation(id, request);
+        return Response.success();
+    }
+
+    /**
+     * 管理员逻辑删除问诊评价
+     */
+    @DeleteMapping("/evaluations/{id}")
+    @RequirePermission("api:consultation-evaluation:delete")
+    @Log(operationType = OperationType.DELETE, operationModule = OperationModule.CONSULTATION, operationDesc = "管理员删除问诊评价")
+    public Response<Void> deleteEvaluation(@PathVariable Long id) {
+        consultationEvaluationService.deleteAdminEvaluation(id);
+        return Response.success();
     }
 }
 

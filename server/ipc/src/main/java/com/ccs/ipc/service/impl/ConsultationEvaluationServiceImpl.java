@@ -2,9 +2,11 @@ package com.ccs.ipc.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.ccs.ipc.dto.admindto.AdminConsultationEvaluationCreateRequest;
 import com.ccs.ipc.dto.admindto.AdminConsultationEvaluationListRequest;
 import com.ccs.ipc.dto.admindto.AdminConsultationEvaluationListResponse;
 import com.ccs.ipc.dto.admindto.AdminConsultationEvaluationResponse;
+import com.ccs.ipc.dto.admindto.AdminConsultationEvaluationUpdateRequest;
 import com.ccs.ipc.entity.ConsultationEvaluation;
 import com.ccs.ipc.entity.ConsultationSession;
 import com.ccs.ipc.entity.SysUser;
@@ -103,5 +105,71 @@ public class ConsultationEvaluationServiceImpl extends ServiceImpl<ConsultationE
         response.setCurrent(result.getCurrent());
         response.setSize(result.getSize());
         return response;
+    }
+
+    @Override
+    @org.springframework.transaction.annotation.Transactional(rollbackFor = Exception.class)
+    public AdminConsultationEvaluationResponse createAdminEvaluation(AdminConsultationEvaluationCreateRequest request) {
+        ConsultationSession session = consultationSessionService.getById(request.getSessionId());
+        if (session == null || session.getIsDeleted() == 1) {
+            throw new RuntimeException("问诊会话不存在");
+        }
+        if (!session.getPatientId().equals(request.getPatientId())) {
+            throw new RuntimeException("患者ID与会话不匹配");
+        }
+        ConsultationEvaluation e = new ConsultationEvaluation();
+        e.setSessionId(request.getSessionId());
+        e.setPatientId(request.getPatientId());
+        e.setDoctorId(request.getDoctorId());
+        e.setRating(request.getRating());
+        e.setComment(request.getComment());
+        e.setIsDeleted((byte) 0);
+        this.save(e);
+        AdminConsultationEvaluationResponse resp = new AdminConsultationEvaluationResponse();
+        resp.setId(e.getId());
+        resp.setSessionId(e.getSessionId());
+        resp.setPatientId(e.getPatientId());
+        resp.setDoctorId(e.getDoctorId());
+        resp.setRating(e.getRating());
+        resp.setComment(e.getComment());
+        resp.setCreateTime(e.getCreateTime());
+        ConsultationSession s = consultationSessionService.getById(e.getSessionId());
+        resp.setSessionNo(s != null ? s.getSessionNo() : null);
+        SysUser patient = sysUserService.getById(e.getPatientId());
+        resp.setPatientName(patient != null ? (StringUtils.hasText(patient.getRealName()) ? patient.getRealName() : patient.getUsername()) : null);
+        if (e.getDoctorId() != null) {
+            SysUser doctor = sysUserService.getById(e.getDoctorId());
+            resp.setDoctorName(doctor != null ? (StringUtils.hasText(doctor.getRealName()) ? doctor.getRealName() : doctor.getUsername()) : "-");
+        } else {
+            resp.setDoctorName("AI问诊");
+        }
+        return resp;
+    }
+
+    @Override
+    @org.springframework.transaction.annotation.Transactional(rollbackFor = Exception.class)
+    public void updateAdminEvaluation(Long id, AdminConsultationEvaluationUpdateRequest request) {
+        ConsultationEvaluation e = this.getById(id);
+        if (e == null || e.getIsDeleted() == 1) {
+            throw new RuntimeException("问诊评价不存在");
+        }
+        if (request.getRating() != null) {
+            e.setRating(request.getRating());
+        }
+        if (request.getComment() != null) {
+            e.setComment(request.getComment());
+        }
+        this.updateById(e);
+    }
+
+    @Override
+    @org.springframework.transaction.annotation.Transactional(rollbackFor = Exception.class)
+    public void deleteAdminEvaluation(Long id) {
+        ConsultationEvaluation e = this.getById(id);
+        if (e == null || e.getIsDeleted() == 1) {
+            throw new RuntimeException("问诊评价不存在");
+        }
+        e.setIsDeleted((byte) 1);
+        this.updateById(e);
     }
 }

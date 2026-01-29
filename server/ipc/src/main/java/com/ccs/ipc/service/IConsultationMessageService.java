@@ -86,4 +86,9 @@ public interface IConsultationMessageService extends IService<ConsultationMessag
      * @return 消息列表响应
      */
     ConsultationMessageListResponse getAdminSessionMessages(Long sessionId, ConsultationMessageListRequest request);
+
+    /**
+     * 管理员逻辑删除问诊消息
+     */
+    void deleteAdminMessage(Long id);
 }

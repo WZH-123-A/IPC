@@ -79,4 +79,14 @@ public interface IConsultationSessionService extends IService<ConsultationSessio
      * @return 会话响应
      */
     AdminConsultationSessionResponse getAdminSessionById(Long id);
+
+    /**
+     * 管理员端：更新问诊会话（标题、状态）
+     */
+    void updateAdminSession(Long id, com.ccs.ipc.dto.admindto.AdminConsultationSessionUpdateRequest request);
+
+    /**
+     * 管理员端：逻辑删除问诊会话
+     */
+    void deleteAdminSession(Long id);
 }

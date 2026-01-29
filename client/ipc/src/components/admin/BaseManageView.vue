@@ -229,6 +229,7 @@ defineExpose({
     pagination.size = paginationData.size
     pagination.total = paginationData.total
   },
+  handleEdit,
 })
 </script>
 

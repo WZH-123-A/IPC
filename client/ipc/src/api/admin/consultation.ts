@@ -47,6 +47,25 @@ export const getConsultationSessionByIdApi = async (id: number) => {
   return response.data.data
 }
 
+export interface ConsultationSessionUpdateParams {
+  title?: string
+  status?: number
+}
+
+/**
+ * 管理员更新问诊会话
+ */
+export const updateConsultationSessionApi = async (id: number, data: ConsultationSessionUpdateParams) => {
+  await request.put<ApiResponse<void>>(`/admin/consultation/sessions/${id}`, data)
+}
+
+/**
+ * 管理员删除问诊会话
+ */
+export const deleteConsultationSessionApi = async (id: number) => {
+  await request.delete<ApiResponse<void>>(`/admin/consultation/sessions/${id}`)
+}
+
 // ==================== 问诊消息管理 ====================
 
 export interface ConsultationMessage {
@@ -80,6 +99,13 @@ export const getConsultationMessageListApi = async (
     size: number
   }>>(`/admin/consultation/sessions/${sessionId}/messages`, { params })
   return response.data.data
+}
+
+/**
+ * 管理员删除问诊消息
+ */
+export const deleteConsultationMessageApi = async (id: number) => {
+  await request.delete<ApiResponse<void>>(`/admin/consultation/messages/${id}`)
 }
 
 // ==================== 问诊评价管理 ====================
@@ -119,5 +145,43 @@ export const getConsultationEvaluationListApi = async (
     size: number
   }>>('/admin/consultation/evaluations/list', { params })
   return response.data.data
+}
+
+export interface ConsultationEvaluationCreateParams {
+  sessionId: number
+  patientId: number
+  doctorId?: number
+  rating: number
+  comment?: string
+}
+
+export interface ConsultationEvaluationUpdateParams {
+  rating?: number
+  comment?: string
+}
+
+/**
+ * 管理员新增问诊评价
+ */
+export const createConsultationEvaluationApi = async (data: ConsultationEvaluationCreateParams) => {
+  const response = await request.post<ApiResponse<ConsultationEvaluation>>('/admin/consultation/evaluations', data)
+  return response.data.data
+}
+
+/**
+ * 管理员更新问诊评价
+ */
+export const updateConsultationEvaluationApi = async (
+  id: number,
+  data: ConsultationEvaluationUpdateParams
+) => {
+  await request.put<ApiResponse<void>>(`/admin/consultation/evaluations/${id}`, data)
+}
+
+/**
+ * 管理员删除问诊评价
+ */
+export const deleteConsultationEvaluationApi = async (id: number) => {
+  await request.delete<ApiResponse<void>>(`/admin/consultation/evaluations/${id}`)
 }
 
