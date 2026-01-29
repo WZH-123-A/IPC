@@ -38,6 +38,9 @@ const router = createRouter({
 // 已添加的路由名称集合（用于去重）
 const addedRouteNames = new Set<string>()
 
+/** 本页加载是否已刷新过权限（刷新页面后会重置，保证每次刷新都会从服务端拉取最新权限） */
+let hasRefreshedPermissionsThisPageLoad = false
+
 /**
  * 检查权限对应的路由是否已添加
  * @param permissions 权限列表
@@ -162,6 +165,17 @@ router.beforeEach(async (to, from, next) => {
 
   // 如果已登录
   if (authStore.isAuthenticated) {
+    // 每次刷新页面后自动从服务端拉取最新权限（仅本页加载执行一次）
+    if (!hasRefreshedPermissionsThisPageLoad) {
+      hasRefreshedPermissionsThisPageLoad = true
+      try {
+        await authStore.refreshPermissions()
+      } catch (error) {
+        console.error('刷新权限失败，使用本地缓存:', error)
+        // 刷新失败（如 token 失效）时继续用缓存，避免白屏；若需 401 时跳转登录，可在 request 拦截器或此处补充
+      }
+    }
+
     const userRoutePermissions = authStore.userRoutePermissions
 
     // 检查是否需要添加动态路由（根据当前用户的路由权限）

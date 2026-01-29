@@ -19,31 +19,20 @@
         text-color="#bfcbd9"
         active-text-color="#409eff"
       >
-        <el-menu-item index="/doctor/home">
-          <el-icon><HomeFilled /></el-icon>
-          <template #title>工作台</template>
-        </el-menu-item>
-
-        <el-menu-item index="/doctor/consultation/chat">
-          <el-icon><ChatDotRound /></el-icon>
+        <el-menu-item
+          v-for="item in doctorMenuItems"
+          :key="item.path"
+          :index="item.path"
+        >
+          <el-icon><component :is="iconMap[item.icon]" /></el-icon>
           <template #title>
-            <span style="flex: 1">在线问诊</span>
+            <span style="flex: 1">{{ item.title }}</span>
             <el-badge
-              v-if="unreadCount > 0"
+              v-if="item.permissionCode === 'doctor:consultation:chat:menu' && unreadCount > 0"
               :value="unreadCount > 99 ? '99+' : unreadCount"
               class="menu-badge"
             />
           </template>
-        </el-menu-item>
-
-        <el-menu-item index="/doctor/consultation">
-          <el-icon><Document /></el-icon>
-          <template #title>问诊管理</template>
-        </el-menu-item>
-
-        <el-menu-item index="/doctor/patients">
-          <el-icon><UserFilled /></el-icon>
-          <template #title>患者管理</template>
         </el-menu-item>
       </el-menu>
 
@@ -109,13 +98,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, type Component } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '../../stores/auth'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useConsultationMessageStore } from '../../stores/consultationMessage'
 import { useUnreadStore } from '../../stores/unread'
 import { websocketClient, WebSocketStatus } from '../../utils/websocket'
+import { getDoctorMenuItemsFromTree } from '../../utils/permission'
 import {
   HomeFilled,
   ChatDotRound,
@@ -136,6 +126,20 @@ const messageStore = useConsultationMessageStore()
 const unreadStore = useUnreadStore()
 
 const isCollapsed = ref(false)
+
+// 图标映射，用于动态组件
+const iconMap: Record<string, Component> = {
+  HomeFilled,
+  ChatDotRound,
+  Document,
+  UserFilled,
+}
+
+// 根据权限树渲染医生端菜单（医生菜单权限分组下的 type=1 菜单）
+const doctorMenuItems = computed(() => {
+  const tree = authStore.userInfo?.permissions
+  return getDoctorMenuItemsFromTree(tree)
+})
 
 // 从 UnreadStore 读取总未读数（单一事实源）
 const unreadCount = computed(() => unreadStore.totalUnreadCount)
@@ -170,15 +174,17 @@ const activeMenu = computed(() => {
   return path
 })
 
-// 当前页面标题
+// 当前页面标题（从菜单项取或按路径兜底）
 const currentPageTitle = computed(() => {
+  const item = doctorMenuItems.value.find((m) => m.path === route.path)
+  if (item) return item.title
   const titleMap: Record<string, string> = {
     '/doctor/home': '',
     '/doctor/consultation/chat': '在线问诊',
     '/doctor/consultation': '问诊管理',
     '/doctor/patients': '患者管理',
   }
-  return titleMap[route.path] || ''
+  return titleMap[route.path] ?? ''
 })
 
 // 切换侧边栏折叠

@@ -57,5 +57,30 @@ public class WebSocketService {
         messagingTemplate.convertAndSend(destination, status);
         log.debug("向会话 {} 推送状态更新: {}", sessionId, status);
     }
+
+    /**
+     * 通知指定用户刷新权限
+     *
+     * @param userId 被分配权限的用户ID
+     */
+    public void sendPermissionRefreshToUser(Long userId) {
+        String destination = "/topic/permission-refresh";
+        Object payload = java.util.Map.of("type", "permission-refresh", "userId", userId);
+        messagingTemplate.convertAndSend(destination, payload);
+    }
+
+    /**
+     * 通知多个用户刷新权限（如角色权限变更后通知该角色下所有用户）
+     *
+     * @param userIds 用户ID列表
+     */
+    public void sendPermissionRefreshToUsers(java.util.List<Long> userIds) {
+        if (userIds == null || userIds.isEmpty()) {
+            return;
+        }
+        for (Long userId : userIds) {
+            sendPermissionRefreshToUser(userId);
+        }
+    }
 }
 

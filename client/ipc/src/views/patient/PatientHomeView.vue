@@ -83,7 +83,7 @@
         </template>
         <div v-if="recentConsultations.length === 0" class="empty-state">
           <el-empty description="暂无问诊记录" :image-size="100">
-            <el-button type="primary" @click="goToConsultation">开始问诊</el-button>
+            <el-button v-permission="'patient:consultation:create'" type="primary" @click="goToConsultation">开始问诊</el-button>
           </el-empty>
         </div>
         <div v-else class="consultation-list">

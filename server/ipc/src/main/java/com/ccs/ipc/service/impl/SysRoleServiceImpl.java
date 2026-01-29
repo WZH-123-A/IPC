@@ -7,12 +7,16 @@ import com.ccs.ipc.common.response.ResultCode;
 import com.ccs.ipc.dto.roledto.*;
 import com.ccs.ipc.entity.SysRole;
 import com.ccs.ipc.entity.SysRolePermission;
+import com.ccs.ipc.event.RolePermissionsAssignedEvent;
 import com.ccs.ipc.mapper.SysRoleMapper;
 import com.ccs.ipc.service.ISysRolePermissionService;
 import com.ccs.ipc.service.ISysRoleService;
+import com.ccs.ipc.service.ISysUserRoleService;
+import com.ccs.ipc.websocket.WebSocketService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -36,6 +40,9 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole> impl
 
     @Autowired
     private ISysRolePermissionService sysRolePermissionService;
+
+    @Autowired
+    private ApplicationEventPublisher applicationEventPublisher;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -169,6 +176,9 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole> impl
                     .collect(Collectors.toList());
             sysRolePermissionService.saveBatch(rolePermissions);
         }
+
+        // 事务提交后由 RolePermissionsAssignedListener 发送 WebSocket，避免在事务内 I/O 导致锁等待超时
+        applicationEventPublisher.publishEvent(new RolePermissionsAssignedEvent(this, roleId));
     }
 
     @Override

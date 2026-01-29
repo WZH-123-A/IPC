@@ -9,7 +9,7 @@
     delete-permission="system:user:delete"
     @search="handleSearch"
     @add="handleAdd"
-    @edit="(row) => handleEdit(row as unknown as User)"
+    @edit="(row) => onEditOpened(row as unknown as User)"
     @delete="(row) => handleDelete(row as unknown as User)"
     @submit="handleSubmit"
   >
@@ -272,26 +272,22 @@ const handleAdd = () => {
   }
 }
 
-// 编辑
-const handleEdit = async (row: User) => {
+// 编辑：先让 BaseManageView 用行数据填充表单（默认显示原本数据）；@edit 触发后只做拉取角色，避免循环调用
+const handleEdit = (row: User) => {
   if (!baseRef.value) return
   isEdit.value = true
-  baseRef.value.dialogVisible = true
-  baseRef.value.formData = {
-    id: row.id,
-    username: row.username,
-    realName: row.realName || '',
-    phone: row.phone || '',
-    email: row.email || '',
-    gender: row.gender || 0,
-    status: row.status,
-    roleIds: [],
-  }
+  baseRef.value.handleEdit(row as unknown as Record<string, unknown>)
+  // 角色由 onEditOpened（@edit 回调）拉取，此处不再调用，否则会与 BaseManageView 的 emit('edit') 形成循环
+}
 
-  // 加载用户角色
+// 对话框打开后拉取该用户的角色（仅由 BaseManageView 的 @edit 触发一次）
+const onEditOpened = async (row: User) => {
+  if (!baseRef.value) return
+  const formData = baseRef.value.formData as Record<string, unknown>
+  formData.roleIds = formData.roleIds ?? []
   try {
     const roleIds = await getUserRolesApi(row.id)
-    baseRef.value.formData.roleIds = roleIds
+    formData.roleIds = roleIds
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : '加载用户角色失败'
     ElMessage.error(message)

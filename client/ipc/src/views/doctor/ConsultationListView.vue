@@ -90,10 +90,17 @@
         <el-table-column prop="createTime" label="创建时间" width="180" />
         <el-table-column label="操作" width="180" fixed="right">
           <template #default="{ row }">
-            <el-button type="primary" link size="small" @click="handleStartConsultation(row)">
+            <el-button
+              v-permission="'doctor:consultation:start'"
+              type="primary"
+              link
+              size="small"
+              @click="handleStartConsultation(row)"
+            >
               开始问诊
             </el-button>
             <el-button
+              v-permission="'doctor:consultation:end'"
               v-if="row.status === 0"
               type="success"
               link

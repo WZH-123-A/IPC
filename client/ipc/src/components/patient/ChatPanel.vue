@@ -2,7 +2,12 @@
   <div class="chat-panel">
     <div v-if="!session" class="empty-chat">
       <el-empty description="请选择一个问诊会话或创建新问诊" :image-size="200">
-        <el-button type="primary" size="large" @click="$emit('create')">
+        <el-button
+          v-permission="'patient:consultation:create'"
+          type="primary"
+          size="large"
+          @click="$emit('create')"
+        >
           <el-icon><Plus /></el-icon>
           <span>新建问诊</span>
         </el-button>

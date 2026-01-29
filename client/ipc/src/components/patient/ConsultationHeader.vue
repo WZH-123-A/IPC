@@ -8,7 +8,12 @@
       <p class="page-subtitle">与AI或专业医生进行在线咨询，获得专业的医疗建议</p>
     </div>
     <div class="header-right">
-      <el-button type="primary" size="large" @click="$emit('create')">
+      <el-button
+        v-permission="'patient:consultation:create'"
+        type="primary"
+        size="large"
+        @click="$emit('create')"
+      >
         <el-icon><Plus /></el-icon>
         <span>新建问诊</span>
       </el-button>

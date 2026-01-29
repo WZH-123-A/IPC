@@ -17,7 +17,7 @@
             class="nav-item"
             :class="{ active: $route.path === item.path }"
           >
-            <el-icon><component :is="iconMap[item.icon] || ChatDotRound" /></el-icon>
+            <el-icon><component :is="iconMap[item.icon] ?? ChatDotRound" /></el-icon>
             <span>{{ item.title }}</span>
           </router-link>
         </nav>
@@ -71,6 +71,7 @@ import {
   SwitchButton,
   ArrowDown,
 } from '@element-plus/icons-vue'
+import { getPatientMenuItemsFromTree } from '../../utils/permission'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -82,34 +83,10 @@ const iconMap: Record<string, Component> = {
   Search,
 }
 
+// 根据权限树渲染患者端菜单（患者菜单权限分组下的 type=1 菜单）
 const navItems = computed(() => {
-  const items: Array<{ path: string; title: string; icon: string }> = []
-  
-  if (authStore.hasPermission('patient:home')) {
-    items.push({
-      path: '/patient/home',
-      title: '首页',
-      icon: 'HomeFilled',
-    })
-  }
-  
-  if (authStore.hasPermission('patient:consultation')) {
-    items.push({
-      path: '/patient/consultation',
-      title: '在线问诊',
-      icon: 'ChatDotRound',
-    })
-  }
-  
-  if (authStore.hasPermission('patient:diagnosis')) {
-    items.push({
-      path: '/patient/diagnosis',
-      title: '皮肤诊断',
-      icon: 'Search',
-    })
-  }
-  
-  return items
+  const tree = authStore.userInfo?.permissions
+  return getPatientMenuItemsFromTree(tree)
 })
 
 const handleCommand = async (command: string) => {

@@ -44,7 +44,7 @@
       </div>
       <div v-if="filteredSessions.length === 0" class="empty-sessions">
         <el-empty description="暂无问诊记录" :image-size="120">
-          <el-button type="primary" @click="$emit('create')">开始问诊</el-button>
+          <el-button v-permission="'patient:consultation:create'" type="primary" @click="$emit('create')">开始问诊</el-button>
         </el-empty>
       </div>
     </div>

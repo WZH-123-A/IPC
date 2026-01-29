@@ -72,6 +72,113 @@ export const permissionToIconMap: Record<string, string> = {
   'statistics:menu': 'DataAnalysis',
 }
 
+/** 患者端菜单：权限编码 -> 路由路径 */
+export const patientPermissionToRouteMap: Record<string, string> = {
+  'patient:home:menu': '/patient/home',
+  'patient:consultation:menu': '/patient/consultation',
+  'patient:diagnosis:menu': '/patient/diagnosis',
+}
+
+/** 患者端菜单：权限编码 -> 图标名 */
+export const patientPermissionToIconMap: Record<string, string> = {
+  'patient:home:menu': 'HomeFilled',
+  'patient:consultation:menu': 'ChatDotRound',
+  'patient:diagnosis:menu': 'Search',
+}
+
+/** 医生端菜单：权限编码 -> 路由路径 */
+export const doctorPermissionToRouteMap: Record<string, string> = {
+  'doctor:home:menu': '/doctor/home',
+  'doctor:consultation:chat:menu': '/doctor/consultation/chat',
+  'doctor:consultation:menu': '/doctor/consultation',
+  'doctor:patients:menu': '/doctor/patients',
+}
+
+/** 医生端菜单：权限编码 -> 图标名 */
+export const doctorPermissionToIconMap: Record<string, string> = {
+  'doctor:home:menu': 'HomeFilled',
+  'doctor:consultation:chat:menu': 'ChatDotRound',
+  'doctor:consultation:menu': 'Document',
+  'doctor:patients:menu': 'UserFilled',
+}
+
+/**
+ * 在权限树中按编码查找节点（递归）
+ */
+export function findPermissionNodeByCode(
+  tree: UserPermissionTreeNode[],
+  code: string
+): UserPermissionTreeNode | null {
+  for (const node of tree) {
+    if (node.permissionCode === code) return node
+    if (node.children?.length) {
+      const found = findPermissionNodeByCode(node.children, code)
+      if (found) return found
+    }
+  }
+  return null
+}
+
+/** 患者端菜单项（用于顶部导航） */
+export interface PatientNavItem {
+  path: string
+  title: string
+  icon: string
+  permissionCode: string
+}
+
+/**
+ * 从权限树中解析患者端菜单（仅 type=1 且属于 patient-menu:group 的子节点）
+ */
+export function getPatientMenuItemsFromTree(
+  tree: UserPermissionTreeNode[] | undefined
+): PatientNavItem[] {
+  if (!tree?.length) return []
+  const group = findPermissionNodeByCode(tree, 'patient-menu:group')
+  if (!group?.children?.length) return []
+  const routeMap = patientPermissionToRouteMap
+  const iconMap = patientPermissionToIconMap
+  return group.children
+    .filter((node) => node.permissionType === 1 && routeMap[node.permissionCode])
+    .sort((a, b) => (a.sort ?? 0) - (b.sort ?? 0))
+    .map((node) => ({
+      path: routeMap[node.permissionCode],
+      title: node.permissionName,
+      icon: iconMap[node.permissionCode] ?? 'Document',
+      permissionCode: node.permissionCode,
+    }))
+}
+
+/** 医生端菜单项（用于侧边栏） */
+export interface DoctorNavItem {
+  path: string
+  title: string
+  icon: string
+  permissionCode: string
+}
+
+/**
+ * 从权限树中解析医生端菜单（仅 type=1 且属于 doctor-menu:group 的子节点）
+ */
+export function getDoctorMenuItemsFromTree(
+  tree: UserPermissionTreeNode[] | undefined
+): DoctorNavItem[] {
+  if (!tree?.length) return []
+  const group = findPermissionNodeByCode(tree, 'doctor-menu:group')
+  if (!group?.children?.length) return []
+  const routeMap = doctorPermissionToRouteMap
+  const iconMap = doctorPermissionToIconMap
+  return group.children
+    .filter((node) => node.permissionType === 1 && routeMap[node.permissionCode])
+    .sort((a, b) => (a.sort ?? 0) - (b.sort ?? 0))
+    .map((node) => ({
+      path: routeMap[node.permissionCode],
+      title: node.permissionName,
+      icon: iconMap[node.permissionCode] ?? 'Document',
+      permissionCode: node.permissionCode,
+    }))
+}
+
 export function convertPermissionTreeToMenuItems(
   tree: UserPermissionTreeNode[],
   permissionToRoute: Record<string, string> = permissionToRouteMap

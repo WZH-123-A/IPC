@@ -66,6 +66,7 @@
                   <el-option label="其他" value="其他" />
                 </el-select>
                 <el-button
+                  v-permission="'patient:diagnosis:upload'"
                   type="primary"
                   size="large"
                   :loading="uploading"

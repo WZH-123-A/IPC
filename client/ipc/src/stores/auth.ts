@@ -209,6 +209,9 @@ export const useAuthStore = defineStore('auth', () => {
       } else if (sessionStorage.getItem('token')) {
         sessionStorage.setItem('userInfo', userInfoStr)
       }
+
+      // 通知各布局/侧边栏重新根据权限树渲染菜单
+      window.dispatchEvent(new CustomEvent('permission-refresh'))
     } catch (error: unknown) {
       console.error('刷新权限失败:', error)
       throw error

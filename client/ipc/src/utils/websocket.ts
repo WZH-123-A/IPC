@@ -252,7 +252,7 @@ export class WebSocketClient {
       return
     }
 
-    console.log('处理STOMP帧，命令:', frame.command, 'destination:', frame.headers['destination'])
+    console.log('处理STOMP帧，命令:', frame.command, 'destination:', this.getStompHeader(frame.headers, 'destination'))
 
     switch (frame.command) {
       case 'CONNECTED':
@@ -284,18 +284,47 @@ export class WebSocketClient {
   }
 
   /**
+   * 从 STOMP 帧头中按 key 取值（不区分大小写，兼容服务端发 Destination 等写法）
+   */
+  private getStompHeader(headers: Record<string, string>, key: string): string | undefined {
+    const lower = key.toLowerCase()
+    for (const [k, v] of Object.entries(headers)) {
+      if (k.toLowerCase() === lower) return v
+    }
+    return undefined
+  }
+
+  /**
+   * 根据 MESSAGE 的 destination 派发到对应订阅回调。
+   * 服务端发的是 /user/{userId}/queue/xxx，客户端订阅的是 /user/queue/xxx，需按「精确匹配或 user-destination 后缀匹配」。
+   */
+  private findCallbackForDestination(msgDest: string): ((message: WebSocketMessage | number) => void) | undefined {
+    // 1. 精确匹配
+    const exact = this.subscriptions.get(msgDest)
+    if (exact) return exact
+    // 2. user-destination：订阅 key 为 /user/queue/xxx，消息为 /user/{userId}/queue/xxx，按后缀匹配
+    for (const [subDest, cb] of this.subscriptions) {
+      if (subDest.startsWith('/user/queue/')) {
+        const suffix = '/queue/' + subDest.slice('/user/queue/'.length)
+        if (msgDest.startsWith('/user/') && msgDest.endsWith(suffix)) return cb
+      }
+    }
+    return undefined
+  }
+
+  /**
    * 处理MESSAGE帧
    */
   private handleMessage(frame: StompFrame): void {
-    const destination = frame.headers['destination']
+    const destination = this.getStompHeader(frame.headers, 'destination')
     if (!destination) {
-      console.warn('WebSocket消息缺少destination', frame)
+      console.warn('WebSocket消息缺少destination', frame.headers, frame)
       return
     }
 
     console.log('WebSocket收到消息，destination:', destination, 'body:', frame.body)
 
-    const callback = this.subscriptions.get(destination)
+    const callback = this.findCallbackForDestination(destination)
     if (!callback) {
       console.warn('WebSocket消息没有对应的订阅回调，destination:', destination, '当前订阅:', Array.from(this.subscriptions.keys()))
       return
@@ -307,6 +336,17 @@ export class WebSocketClient {
         const status = parseInt(frame.body || '0', 10)
         console.log('WebSocket状态更新:', status)
         callback(status)
+      } else if (destination.includes('permission-refresh')) {
+        // 权限刷新通知，body 为 { userId, type }，解析后传给回调由调用方根据 userId 判断是否刷新
+        let payload: { userId?: number; type?: string } = {}
+        if (frame.body) {
+          try {
+            payload = JSON.parse(frame.body) as { userId?: number; type?: string }
+          } catch {
+            payload = {}
+          }
+        }
+        callback(payload as unknown as WebSocketMessage)
       } else {
         if (!frame.body) {
           console.error('消息体为空，无法解析')
@@ -492,6 +532,58 @@ export class WebSocketClient {
           })
           this.sendStompFrame(unsubscribeFrame)
         }
+      }
+      this.subscriptions.delete(destination)
+      this.subscriptionsMap.delete(destination)
+    }
+  }
+
+  /**
+   * 订阅权限刷新通知（广播到 /topic/permission-refresh，payload 带 userId，回调里根据 userId 判断是否为自己再刷新）
+   */
+  subscribeToPermissionRefresh(callback: (payload: { userId?: number; type?: string }) => void): () => void {
+    const destination = '/topic/permission-refresh'
+    const subscriptionId = `sub-${++this.subscriptionIdCounter}`
+    let cancelled = false
+    let statusUnsub: (() => void) | null = null
+
+    const wrappedCallback = (message: WebSocketMessage | number) => {
+      if (typeof message === 'number') return
+      const payload = (message as unknown as { userId?: number; type?: string }) || {}
+      callback(payload)
+    }
+
+    const doSubscribe = () => {
+      if (cancelled || !this.ws || this.ws.readyState !== WebSocket.OPEN) return
+      const subscribeFrame = this.createStompFrame('SUBSCRIBE', {
+        id: subscriptionId,
+        destination,
+      })
+      this.sendStompFrame(subscribeFrame)
+      this.subscriptions.set(destination, wrappedCallback as (message: WebSocketMessage | number) => void)
+      this.subscriptionsMap.set(destination, subscriptionId)
+    }
+
+    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+      doSubscribe()
+    } else {
+      statusUnsub = this.onStatusChange((status) => {
+        if (status === WebSocketStatus.CONNECTED && !cancelled) {
+          statusUnsub?.()
+          statusUnsub = null
+          doSubscribe()
+        }
+      })
+    }
+
+    return () => {
+      cancelled = true
+      statusUnsub?.()
+      statusUnsub = null
+      const subId = this.subscriptionsMap.get(destination)
+      if (subId && this.ws && this.ws.readyState === WebSocket.OPEN) {
+        const unsubscribeFrame = this.createStompFrame('UNSUBSCRIBE', { id: subId })
+        this.sendStompFrame(unsubscribeFrame)
       }
       this.subscriptions.delete(destination)
       this.subscriptionsMap.delete(destination)
