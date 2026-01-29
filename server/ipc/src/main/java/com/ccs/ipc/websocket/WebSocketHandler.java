@@ -28,6 +28,9 @@ public class WebSocketHandler implements ChannelInterceptor {
     @Autowired
     private JwtUtil jwtUtil;
 
+    @Autowired
+    private OnlineUserRegistry onlineUserRegistry;
+
     @Override
     public Message<?> preSend(Message<?> message, MessageChannel channel) {
         StompHeaderAccessor accessor = MessageHeaderAccessor.getAccessor(message, StompHeaderAccessor.class);
@@ -54,7 +57,11 @@ public class WebSocketHandler implements ChannelInterceptor {
                                 // 设置用户身份
                                 Principal principal = () -> userId.toString();
                                 accessor.setUser(principal);
-                                log.info("WebSocket连接成功，用户ID: {}", userId);
+                                String sessionId = accessor.getSessionId();
+                                if (sessionId != null) {
+                                    onlineUserRegistry.addSession(sessionId, userId);
+                                }
+                                log.info("WebSocket连接成功，用户ID: {}, 在线人数: {}", userId, onlineUserRegistry.getOnlineCount());
                             } else {
                                 log.warn("WebSocket连接失败，无效的token - userId: {}, isValid: {}", userId, isValid);
                                 // 拒绝连接 - 设置错误消息
@@ -79,10 +86,14 @@ public class WebSocketHandler implements ChannelInterceptor {
                     throw new RuntimeException("Missing Authorization header");
                 }
             } else if (StompCommand.DISCONNECT.equals(command)) {
-                // 处理断开连接
+                // 处理断开连接，从在线注册表移除
+                String sessionId = accessor.getSessionId();
+                if (sessionId != null) {
+                    onlineUserRegistry.removeSession(sessionId);
+                }
                 Principal user = accessor.getUser();
                 if (user != null) {
-                    log.info("WebSocket断开连接，用户ID: {}", user.getName());
+                    log.info("WebSocket断开连接，用户ID: {}, 在线人数: {}", user.getName(), onlineUserRegistry.getOnlineCount());
                 } else {
                     log.info("WebSocket断开连接（未认证用户）");
                 }

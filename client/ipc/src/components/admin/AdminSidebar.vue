@@ -9,6 +9,11 @@
       active-text-color="#409EFF"
       :unique-opened="false"
     >
+      <!-- 固定首页入口，方便回到管理后台首页 -->
+      <el-menu-item index="/admin/home">
+        <el-icon><HomeFilled /></el-icon>
+        <span>首页</span>
+      </el-menu-item>
       <MenuItemComponent
         v-for="menuItem in menuItems"
         :key="menuItem.index"

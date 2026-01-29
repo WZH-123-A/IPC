@@ -18,8 +18,14 @@ export * from './accessLog'
 // 操作日志管理
 export * from './operationLog'
 
+// 问诊管理
+export * from './consultation'
+
 // 文件管理
 export * from './file'
 
 // 知识库管理（分类、内容、标签、图片上传）
 export * from './knowledge'
+
+// 管理员首页（数据概览等）
+export * from './home'

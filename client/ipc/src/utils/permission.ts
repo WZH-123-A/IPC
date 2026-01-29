@@ -1,4 +1,5 @@
 import type { UserPermissionTreeNode } from '../api/userPermissions'
+import { filterPermissionsByType } from '../api/userPermissions'
 
 /**
  * 菜单项接口
@@ -144,7 +145,7 @@ export function getPatientMenuItemsFromTree(
     .filter((node) => node.permissionType === 1 && routeMap[node.permissionCode])
     .sort((a, b) => (a.sort ?? 0) - (b.sort ?? 0))
     .map((node) => ({
-      path: routeMap[node.permissionCode],
+      path: routeMap[node.permissionCode] as string,
       title: node.permissionName,
       icon: iconMap[node.permissionCode] ?? 'Document',
       permissionCode: node.permissionCode,
@@ -174,7 +175,7 @@ export function getDoctorMenuItemsFromTree(
     .filter((node) => node.permissionType === 1 && routeMap[node.permissionCode])
     .sort((a, b) => (a.sort ?? 0) - (b.sort ?? 0))
     .map((node) => ({
-      path: routeMap[node.permissionCode],
+      path: routeMap[node.permissionCode] as string,
       title: node.permissionName,
       icon: iconMap[node.permissionCode] ?? 'Document',
       permissionCode: node.permissionCode,
@@ -232,5 +233,42 @@ export function convertPermissionTreeToMenuItems(
       }
     })
     .filter((item): item is MenuItem => item !== null)
+}
+
+/** 管理员首页快捷入口项（从菜单权限树解析，仅叶子且有路由的节点） */
+export interface AdminQuickLinkItem {
+  path: string
+  label: string
+  permissionCode: string
+  iconName: string
+}
+
+/**
+ * 从权限树的菜单中解析出管理员快捷入口（扁平化叶子节点，且排除首页）
+ */
+export function getAdminQuickLinkItemsFromTree(
+  tree: UserPermissionTreeNode[] | undefined
+): AdminQuickLinkItem[] {
+  if (!tree?.length) return []
+  const menuTree = filterPermissionsByType(tree, 1)
+  const menuItems = convertPermissionTreeToMenuItems(menuTree)
+  const result: AdminQuickLinkItem[] = []
+
+  function flattenLeaves(items: MenuItem[]) {
+    for (const item of items) {
+      if (item.children && item.children.length > 0) {
+        flattenLeaves(item.children)
+      } else if (item.index && item.index.startsWith('/') && item.index !== '/admin/home') {
+        result.push({
+          path: item.index,
+          label: item.title,
+          permissionCode: item.permissionCode,
+          iconName: permissionToIconMap[item.permissionCode] ?? 'Document',
+        })
+      }
+    }
+  }
+  flattenLeaves(menuItems)
+  return result.sort((a, b) => a.label.localeCompare(b.label, 'zh-CN'))
 }
 
