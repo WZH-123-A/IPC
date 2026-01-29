@@ -304,6 +304,29 @@ public class ConsultationMessageServiceImpl extends ServiceImpl<ConsultationMess
         return messageResponse;
     }
 
+    @Override
+    public ConsultationMessageListResponse getAdminSessionMessages(Long sessionId, ConsultationMessageListRequest request) {
+        ConsultationSession session = consultationSessionService.getById(sessionId);
+        if (session == null || session.getIsDeleted() == 1) {
+            throw new RuntimeException("问诊会话不存在");
+        }
+
+        Page<ConsultationMessage> page = new Page<>(request.getCurrent(), request.getSize());
+        LambdaQueryWrapper<ConsultationMessage> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(ConsultationMessage::getSessionId, sessionId)
+                .eq(ConsultationMessage::getIsDeleted, 0)
+                .orderByAsc(ConsultationMessage::getCreateTime);
+
+        Page<ConsultationMessage> result = this.page(page, queryWrapper);
+
+        ConsultationMessageListResponse response = new ConsultationMessageListResponse();
+        response.setTotal(result.getTotal());
+        response.setCurrent(result.getCurrent());
+        response.setSize(result.getSize());
+        response.setRecords(result.getRecords().stream().map(this::convertToResponse).collect(Collectors.toList()));
+        return response;
+    }
+
     private ConsultationMessageResponse convertToResponse(ConsultationMessage message) {
         ConsultationMessageResponse response = new ConsultationMessageResponse();
         BeanUtils.copyProperties(message, response);

@@ -77,5 +77,13 @@ public interface IConsultationMessageService extends IService<ConsultationMessag
      * @return 消息响应
      */
     ConsultationMessageResponse sendDoctorMessage(Long doctorId, SendMessageRequest request);
-    
+
+    /**
+     * 管理员获取问诊消息列表（按会话ID，不校验用户归属）
+     *
+     * @param sessionId 会话ID
+     * @param request   查询请求
+     * @return 消息列表响应
+     */
+    ConsultationMessageListResponse getAdminSessionMessages(Long sessionId, ConsultationMessageListRequest request);
 }

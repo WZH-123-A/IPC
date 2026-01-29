@@ -47,3 +47,77 @@ export const getConsultationSessionByIdApi = async (id: number) => {
   return response.data.data
 }
 
+// ==================== 问诊消息管理 ====================
+
+export interface ConsultationMessage {
+  id: number
+  sessionId: number
+  senderId: number
+  senderType: number // 1-患者 2-医生 3-AI
+  messageType: number // 1-文本 2-图片 3-语音 4-视频
+  content: string
+  aiModel?: string
+  isRead: number
+  createTime: string
+}
+
+export interface ConsultationMessageListParams {
+  current?: number
+  size?: number
+}
+
+/**
+ * 管理员获取指定会话的问诊消息列表（分页）
+ */
+export const getConsultationMessageListApi = async (
+  sessionId: number,
+  params: ConsultationMessageListParams
+) => {
+  const response = await request.get<ApiResponse<{
+    records: ConsultationMessage[]
+    total: number
+    current: number
+    size: number
+  }>>(`/admin/consultation/sessions/${sessionId}/messages`, { params })
+  return response.data.data
+}
+
+// ==================== 问诊评价管理 ====================
+
+export interface ConsultationEvaluation {
+  id: number
+  sessionId: number
+  sessionNo?: string
+  patientId: number
+  patientName?: string
+  doctorId?: number
+  doctorName?: string
+  rating: number
+  comment?: string
+  createTime: string
+}
+
+export interface ConsultationEvaluationListParams {
+  current?: number
+  size?: number
+  sessionId?: number
+  patientId?: number
+  doctorId?: number
+  rating?: number
+}
+
+/**
+ * 管理员获取问诊评价列表（分页）
+ */
+export const getConsultationEvaluationListApi = async (
+  params: ConsultationEvaluationListParams
+) => {
+  const response = await request.get<ApiResponse<{
+    records: ConsultationEvaluation[]
+    total: number
+    current: number
+    size: number
+  }>>('/admin/consultation/evaluations/list', { params })
+  return response.data.data
+}
+

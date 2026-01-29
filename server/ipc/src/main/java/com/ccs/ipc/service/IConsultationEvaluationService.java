@@ -1,5 +1,7 @@
 package com.ccs.ipc.service;
 
+import com.ccs.ipc.dto.admindto.AdminConsultationEvaluationListRequest;
+import com.ccs.ipc.dto.admindto.AdminConsultationEvaluationListResponse;
 import com.ccs.ipc.entity.ConsultationEvaluation;
 import com.baomidou.mybatisplus.extension.service.IService;
 
@@ -13,4 +15,11 @@ import com.baomidou.mybatisplus.extension.service.IService;
  */
 public interface IConsultationEvaluationService extends IService<ConsultationEvaluation> {
 
+    /**
+     * 管理员分页查询问诊评价列表
+     *
+     * @param request 查询请求
+     * @return 评价列表响应
+     */
+    AdminConsultationEvaluationListResponse getAdminEvaluationList(AdminConsultationEvaluationListRequest request);
 }
