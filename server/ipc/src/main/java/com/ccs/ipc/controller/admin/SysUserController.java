@@ -2,8 +2,8 @@ package com.ccs.ipc.controller.admin;
 
 import com.ccs.ipc.common.annotation.Log;
 import com.ccs.ipc.common.annotation.RequirePermission;
-import com.ccs.ipc.common.enums.OperationModule;
-import com.ccs.ipc.common.enums.OperationType;
+import com.ccs.ipc.common.enums.log.UserModule;
+import com.ccs.ipc.common.enums.log.UserOperation;
 import com.ccs.ipc.common.response.Response;
 import com.ccs.ipc.common.util.UserContext;
 import com.ccs.ipc.dto.userdto.*;
@@ -35,6 +35,7 @@ public class SysUserController {
      */
     @GetMapping("/list")
     @RequirePermission("admin:api:user:list")
+    @Log(operationType = UserOperation.C.QUERY_LIST, operationModule = UserModule.C.USER, operationDesc = "分页查询用户列表")
     public Response<SysUserListResponse> getUserList(SysUserListRequest request) {
         SysUserListResponse response = sysUserService.getUserList(request);
         return Response.success(response);
@@ -55,7 +56,7 @@ public class SysUserController {
      */
     @PostMapping
     @RequirePermission("admin:api:user:create")
-    @Log(operationType = OperationType.ADD, operationModule = OperationModule.USER, operationDesc = "新增用户")
+    @Log(operationType = UserOperation.C.ADD, operationModule = UserModule.C.USER, operationDesc = "新增用户")
     public Response<SysUserResponse> createUser(@Valid @RequestBody CreateUserRequest request) {
         SysUserResponse response = sysUserService.createUser(request);
         return Response.success(response);
@@ -66,7 +67,7 @@ public class SysUserController {
      */
     @PutMapping("/{id}")
     @RequirePermission("admin:api:user:update")
-    @Log(operationType = OperationType.UPDATE, operationModule = OperationModule.USER, operationDesc = "更新用户")
+    @Log(operationType = UserOperation.C.UPDATE, operationModule = UserModule.C.USER, operationDesc = "更新用户")
     public Response<SysUserResponse> updateUser(@PathVariable Long id, @Valid @RequestBody UpdateUserRequest request) {
         SysUserResponse response = sysUserService.updateUserByAdmin(id, request);
         return Response.success(response);
@@ -76,7 +77,7 @@ public class SysUserController {
      * 更新当前登录用户信息（用户自己更新，不能更新status和roleIds）
      */
     @PutMapping("/update")
-    @Log(operationType = OperationType.UPDATE, operationModule = OperationModule.USER, operationDesc = "更新用户信息")
+    @Log(operationType = UserOperation.C.UPDATE_INFO, operationModule = UserModule.C.USER, operationDesc = "更新用户信息")
     public Response<SysUserResponse> updateCurrentUser(@Valid @RequestBody UpdateUserRequest request,
                                                 HttpServletRequest httpRequest) {
         Long userId = UserContext.getUserId(httpRequest);
@@ -89,7 +90,7 @@ public class SysUserController {
      */
     @DeleteMapping("/{id}")
     @RequirePermission("admin:api:user:delete")
-    @Log(operationType = OperationType.DELETE, operationModule = OperationModule.USER, operationDesc = "删除用户")
+    @Log(operationType = UserOperation.C.DELETE, operationModule = UserModule.C.USER, operationDesc = "删除用户")
     public Response<Void> deleteUser(@PathVariable Long id) {
         sysUserService.deleteUser(id);
         return Response.success();
@@ -100,7 +101,7 @@ public class SysUserController {
      */
     @PutMapping("/{id}/reset-password")
     @RequirePermission("admin:api:user:update")
-    @Log(operationType = OperationType.UPDATE_PASSWORD, operationModule = OperationModule.USER, operationDesc = "重置用户密码")
+    @Log(operationType = UserOperation.C.RESET_PASSWORD, operationModule = UserModule.C.USER, operationDesc = "重置用户密码")
     public Response<Void> resetPassword(@PathVariable Long id, @Valid @RequestBody ResetPasswordRequest request) {
         sysUserService.resetPassword(id, request);
         return Response.success();
@@ -110,7 +111,7 @@ public class SysUserController {
      * 修改密码（当前登录用户）
      */
     @PutMapping("/change-password")
-    @Log(operationType = OperationType.UPDATE_PASSWORD, operationModule = OperationModule.USER, operationDesc = "修改密码", saveRequestData = true, saveResponseData = true)
+    @Log(operationType = UserOperation.C.CHANGE_PASSWORD, operationModule = UserModule.C.USER, operationDesc = "修改密码", saveRequestData = true, saveResponseData = true)
     public Response<Void> changePassword(@Valid @RequestBody ChangePasswordRequest request,
                                           HttpServletRequest httpRequest) {
         Long userId = UserContext.getUserId(httpRequest);
@@ -123,6 +124,7 @@ public class SysUserController {
      */
     @GetMapping("/{id}/roles")
     @RequirePermission("admin:api:user:detail")
+    @Log(operationType = UserOperation.C.QUERY_ROLES, operationModule = UserModule.C.USER, operationDesc = "获取用户的角色ID列表")
     public Response<List<Long>> getUserRoles(@PathVariable Long id) {
         List<Long> roleIds = sysUserService.getUserRoleIds(id);
         return Response.success(roleIds);

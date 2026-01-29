@@ -2,8 +2,8 @@ package com.ccs.ipc.controller.admin;
 
 import com.ccs.ipc.common.annotation.Log;
 import com.ccs.ipc.common.annotation.RequirePermission;
-import com.ccs.ipc.common.enums.OperationModule;
-import com.ccs.ipc.common.enums.OperationType;
+import com.ccs.ipc.common.enums.log.AccessLogModule;
+import com.ccs.ipc.common.enums.log.AccessLogOperation;
 import com.ccs.ipc.common.response.Response;
 import com.ccs.ipc.dto.logdto.AccessLogListRequest;
 import com.ccs.ipc.dto.logdto.AccessLogListResponse;
@@ -53,7 +53,7 @@ public class AccessLogController {
      */
     @DeleteMapping("/{id}")
     @RequirePermission("admin:api:access-log:delete")
-    @Log(operationType = OperationType.DELETE, operationModule = OperationModule.LOG, operationDesc = "删除访问日志")
+    @Log(operationType = AccessLogOperation.C.DELETE, operationModule = AccessLogModule.C.ACCESS_LOG, operationDesc = "删除访问日志")
     public Response<Void> deleteAccessLog(@PathVariable Long id) {
         sysAccessLogService.removeById(id);
         return Response.success();
@@ -64,7 +64,7 @@ public class AccessLogController {
      */
     @DeleteMapping("/batch")
     @RequirePermission("admin:api:access-log:delete")
-    @Log(operationType = OperationType.DELETE, operationModule = OperationModule.LOG, operationDesc = "批量删除访问日志")
+    @Log(operationType = AccessLogOperation.C.BATCH_DELETE, operationModule = AccessLogModule.C.ACCESS_LOG, operationDesc = "批量删除访问日志")
     public Response<Void> batchDeleteAccessLog(@RequestBody java.util.List<Long> ids) {
         sysAccessLogService.removeByIds(ids);
         return Response.success();

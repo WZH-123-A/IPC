@@ -4,8 +4,8 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.ccs.ipc.common.annotation.Log;
 import com.ccs.ipc.common.annotation.RequirePermission;
-import com.ccs.ipc.common.enums.OperationModule;
-import com.ccs.ipc.common.enums.OperationType;
+import com.ccs.ipc.common.enums.log.RoleModule;
+import com.ccs.ipc.common.enums.log.RoleOperation;
 import com.ccs.ipc.common.response.Response;
 import com.ccs.ipc.dto.roledto.*;
 import com.ccs.ipc.entity.SysRole;
@@ -36,7 +36,7 @@ public class SysRoleController {
      */
     @GetMapping("/list")
     @RequirePermission("admin:api:role:list")
-    @Log(operationType = OperationType.QUERY, operationModule = OperationModule.ROLE, operationDesc = "分页查询角色列表")
+    @Log(operationType = RoleOperation.C.QUERY_LIST, operationModule = RoleModule.C.ROLE, operationDesc = "分页查询角色列表")
     public Response<SysRoleListResponse> getRoleList(SysRoleListRequest request) {
         SysRoleListResponse response = sysRoleService.getRoleList(request);
         return Response.success(response);
@@ -47,7 +47,7 @@ public class SysRoleController {
      */
     @GetMapping("/all")
     @RequirePermission("admin:api:role:list")
-    @Log(operationType = OperationType.QUERY, operationModule = OperationModule.ROLE, operationDesc = "获取所有角色（不分页）")
+    @Log(operationType = RoleOperation.C.QUERY_ALL, operationModule = RoleModule.C.ROLE, operationDesc = "获取所有角色（不分页）")
     public Response<List<SysRoleResponse>> getAllRoles() {
         List<SysRoleResponse> responses = sysRoleService.getAllRoles();
         return Response.success(responses);
@@ -58,7 +58,7 @@ public class SysRoleController {
      */
     @GetMapping("/{id}")
     @RequirePermission("admin:api:role:detail")
-    @Log(operationType = OperationType.QUERY, operationModule = OperationModule.ROLE, operationDesc = "根据ID获取角色详情")
+    @Log(operationType = RoleOperation.C.QUERY_DETAIL, operationModule = RoleModule.C.ROLE, operationDesc = "根据ID获取角色详情")
     public Response<SysRoleResponse> getRoleById(@PathVariable Long id) {
         SysRoleResponse response = sysRoleService.getRoleById(id);
         return Response.success(response);
@@ -69,7 +69,7 @@ public class SysRoleController {
      */
     @PostMapping
     @RequirePermission("admin:api:role:create")
-    @Log(operationType = OperationType.ADD, operationModule = OperationModule.ROLE, operationDesc = "新增角色")
+    @Log(operationType = RoleOperation.C.ADD, operationModule = RoleModule.C.ROLE, operationDesc = "新增角色")
     public Response<SysRoleResponse> createRole(@Valid @RequestBody CreateRoleRequest request) {
         SysRoleResponse response = sysRoleService.createRole(request);
         return Response.success(response);
@@ -80,7 +80,7 @@ public class SysRoleController {
      */
     @PutMapping("/{id}")
     @RequirePermission("admin:api:role:update")
-    @Log(operationType = OperationType.UPDATE, operationModule = OperationModule.ROLE, operationDesc = "更新角色")
+    @Log(operationType = RoleOperation.C.UPDATE, operationModule = RoleModule.C.ROLE, operationDesc = "更新角色")
     public Response<SysRoleResponse> updateRole(@PathVariable Long id, @Valid @RequestBody UpdateRoleRequest request) {
         SysRoleResponse response = sysRoleService.updateRole(id, request);
         return Response.success(response);
@@ -91,7 +91,7 @@ public class SysRoleController {
      */
     @DeleteMapping("/{id}")
     @RequirePermission("admin:api:role:delete")
-    @Log(operationType = OperationType.DELETE, operationModule = OperationModule.ROLE, operationDesc = "删除角色")
+    @Log(operationType = RoleOperation.C.DELETE, operationModule = RoleModule.C.ROLE, operationDesc = "删除角色")
     public Response<Void> deleteRole(@PathVariable Long id) {
         sysRoleService.deleteRole(id);
         return Response.success();
@@ -102,7 +102,7 @@ public class SysRoleController {
      */
     @GetMapping("/{id}/permissions")
     @RequirePermission("admin:api:role:detail")
-    @Log(operationType = OperationType.QUERY, operationModule = OperationModule.ROLE, operationDesc = "获取角色的权限ID列表")
+    @Log(operationType = RoleOperation.C.QUERY_PERMISSION_IDS, operationModule = RoleModule.C.ROLE, operationDesc = "获取角色的权限ID列表")
     public Response<List<Long>> getRolePermissions(@PathVariable Long id) {
         List<Long> permissionIds = sysRoleService.getRolePermissionIds(id);
         return Response.success(permissionIds);

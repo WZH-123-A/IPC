@@ -1,8 +1,8 @@
 package com.ccs.ipc.controller;
 
 import com.ccs.ipc.common.annotation.Log;
-import com.ccs.ipc.common.enums.OperationModule;
-import com.ccs.ipc.common.enums.OperationType;
+import com.ccs.ipc.common.enums.log.AuthModule;
+import com.ccs.ipc.common.enums.log.AuthOperation;
 import com.ccs.ipc.common.response.Response;
 import com.ccs.ipc.common.util.UserContext;
 import com.ccs.ipc.dto.auth.LoginRequest;
@@ -44,7 +44,7 @@ public class AuthController {
      * @return 登录响应信息
      */
     @PostMapping("/login")
-    @Log(operationType = OperationType.LOGIN, operationModule = OperationModule.AUTH, operationDesc = "用户登录", saveRequestData = true, saveResponseData = true)
+    @Log(operationType = AuthOperation.C.LOGIN, operationModule = AuthModule.C.AUTH, operationDesc = "用户登录", saveRequestData = true, saveResponseData = true)
     public Response<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
         LoginResponse response = sysUserService.login(request.getUsername(), request.getPassword());
         return Response.success(response);
@@ -57,7 +57,7 @@ public class AuthController {
      * @return 权限树
      */
     @GetMapping("/permissions")
-    @Log(operationType = OperationType.QUERY, operationModule = OperationModule.AUTH, operationDesc = "获取当前用户的权限树", saveRequestData = true, saveResponseData = true)
+    @Log(operationType = AuthOperation.C.GET_PERMISSION_TREE, operationModule = AuthModule.C.AUTH, operationDesc = "获取当前用户的权限树", saveRequestData = true, saveResponseData = true)
     public Response<List<PermissionTreeNode>> getCurrentUserPermissions(HttpServletRequest request) {
         Long userId = UserContext.getUserId(request);
         List<PermissionTreeNode> permissionTree = sysPermissionService.getUserPermissionTree(userId);
@@ -71,6 +71,7 @@ public class AuthController {
      * @return 菜单权限树
      */
     @GetMapping("/menus")
+    @Log(operationType = AuthOperation.C.GET_MENUS, operationModule = AuthModule.C.AUTH, operationDesc = "获取当前用户的菜单权限树")
     public Response<List<PermissionTreeNode>> getCurrentUserMenus(HttpServletRequest request) {
         Long userId = UserContext.getUserId(request);
         List<PermissionTreeNode> menuTree = sysPermissionService.getUserMenuTree(userId);
@@ -84,6 +85,7 @@ public class AuthController {
      * @return 按钮权限编码列表
      */
     @GetMapping("/buttons")
+    @Log(operationType = AuthOperation.C.GET_BUTTONS, operationModule = AuthModule.C.AUTH, operationDesc = "获取当前用户的按钮权限列表")
     public Response<List<String>> getCurrentUserButtons(HttpServletRequest request) {
         Long userId = UserContext.getUserId(request);
         List<String> buttonPermissions = sysPermissionService.getUserButtonPermissions(userId);

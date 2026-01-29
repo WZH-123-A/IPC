@@ -2,8 +2,8 @@ package com.ccs.ipc.controller.admin;
 
 import com.ccs.ipc.common.annotation.Log;
 import com.ccs.ipc.common.annotation.RequirePermission;
-import com.ccs.ipc.common.enums.OperationModule;
-import com.ccs.ipc.common.enums.OperationType;
+import com.ccs.ipc.common.enums.log.KnowledgeModule;
+import com.ccs.ipc.common.enums.log.KnowledgeOperation;
 import com.ccs.ipc.common.response.Response;
 import com.ccs.ipc.common.util.UserContext;
 import com.ccs.ipc.dto.common.FileUploadResponse;
@@ -47,7 +47,7 @@ public class KnowledgeController {
      */
     @PostMapping("/upload")
     @RequirePermission("admin:api:knowledge:upload")
-    @Log(operationType = OperationType.ADD, operationModule = OperationModule.FILE, operationDesc = "知识库图片上传")
+    @Log(operationType = KnowledgeOperation.C.UPLOAD_IMAGE, operationModule = KnowledgeModule.C.FILE, operationDesc = "知识库图片上传")
     public Response<FileUploadResponse> uploadImage(
             @RequestParam("file") MultipartFile file,
             HttpServletRequest request) {
@@ -67,6 +67,7 @@ public class KnowledgeController {
 
     @GetMapping("/categories/list")
     @RequirePermission("admin:api:knowledge-category:list")
+    @Log(operationType = KnowledgeOperation.C.CATEGORY_LIST, operationModule = KnowledgeModule.C.KNOWLEDGE, operationDesc = "分页查询知识库分类列表")
     public Response<KnowledgeCategoryListResponse> getCategoryList(KnowledgeCategoryListRequest request) {
         KnowledgeCategoryListResponse response = knowledgeCategoryService.getAdminCategoryList(request);
         return Response.success(response);
@@ -74,6 +75,7 @@ public class KnowledgeController {
 
     @GetMapping("/categories/{id}")
     @RequirePermission("admin:api:knowledge-category:detail")
+    @Log(operationType = KnowledgeOperation.C.CATEGORY_DETAIL, operationModule = KnowledgeModule.C.KNOWLEDGE, operationDesc = "根据ID获取知识库分类详情")
     public Response<KnowledgeCategoryResponse> getCategoryById(@PathVariable Long id) {
         KnowledgeCategoryResponse response = knowledgeCategoryService.getAdminCategoryById(id);
         if (response == null) return Response.fail("分类不存在");
@@ -82,7 +84,7 @@ public class KnowledgeController {
 
     @PostMapping("/categories")
     @RequirePermission("admin:api:knowledge-category:create")
-    @Log(operationType = OperationType.ADD, operationModule = OperationModule.OTHER, operationDesc = "新增知识库分类")
+    @Log(operationType = KnowledgeOperation.C.CATEGORY_ADD, operationModule = KnowledgeModule.C.KNOWLEDGE, operationDesc = "新增知识库分类")
     public Response<KnowledgeCategoryResponse> createCategory(@Valid @RequestBody KnowledgeCategoryCreateRequest request) {
         KnowledgeCategoryResponse response = knowledgeCategoryService.createAdminCategory(request);
         return Response.success(response);
@@ -90,7 +92,7 @@ public class KnowledgeController {
 
     @PutMapping("/categories/{id}")
     @RequirePermission("admin:api:knowledge-category:update")
-    @Log(operationType = OperationType.UPDATE, operationModule = OperationModule.OTHER, operationDesc = "更新知识库分类")
+    @Log(operationType = KnowledgeOperation.C.CATEGORY_UPDATE, operationModule = KnowledgeModule.C.KNOWLEDGE, operationDesc = "更新知识库分类")
     public Response<Void> updateCategory(@PathVariable Long id, @Valid @RequestBody KnowledgeCategoryUpdateRequest request) {
         knowledgeCategoryService.updateAdminCategory(id, request);
         return Response.success();
@@ -98,7 +100,7 @@ public class KnowledgeController {
 
     @DeleteMapping("/categories/{id}")
     @RequirePermission("admin:api:knowledge-category:delete")
-    @Log(operationType = OperationType.DELETE, operationModule = OperationModule.OTHER, operationDesc = "删除知识库分类")
+    @Log(operationType = KnowledgeOperation.C.CATEGORY_DELETE, operationModule = KnowledgeModule.C.KNOWLEDGE, operationDesc = "删除知识库分类")
     public Response<Void> deleteCategory(@PathVariable Long id) {
         knowledgeCategoryService.deleteAdminCategory(id);
         return Response.success();
@@ -108,6 +110,7 @@ public class KnowledgeController {
 
     @GetMapping("/contents/list")
     @RequirePermission("admin:api:knowledge-content:list")
+    @Log(operationType = KnowledgeOperation.C.CONTENT_LIST, operationModule = KnowledgeModule.C.KNOWLEDGE, operationDesc = "分页查询知识库内容列表")
     public Response<AdminKnowledgeContentListResponse> getContentList(AdminKnowledgeContentListRequest request) {
         AdminKnowledgeContentListResponse response = knowledgeContentService.getAdminContentList(request);
         return Response.success(response);
@@ -115,6 +118,7 @@ public class KnowledgeController {
 
     @GetMapping("/contents/{id}")
     @RequirePermission("admin:api:knowledge-content:detail")
+    @Log(operationType = KnowledgeOperation.C.CONTENT_DETAIL, operationModule = KnowledgeModule.C.KNOWLEDGE, operationDesc = "根据ID获取知识库内容详情")
     public Response<KnowledgeContentResponse> getContentById(@PathVariable Long id) {
         KnowledgeContentResponse response = knowledgeContentService.getAdminContentById(id);
         if (response == null) return Response.fail("内容不存在");
@@ -123,7 +127,7 @@ public class KnowledgeController {
 
     @PostMapping("/contents")
     @RequirePermission("admin:api:knowledge-content:create")
-    @Log(operationType = OperationType.ADD, operationModule = OperationModule.OTHER, operationDesc = "新增知识库内容")
+    @Log(operationType = KnowledgeOperation.C.CONTENT_ADD, operationModule = KnowledgeModule.C.KNOWLEDGE, operationDesc = "新增知识库内容")
     public Response<KnowledgeContentResponse> createContent(
             @Valid @RequestBody KnowledgeContentCreateRequest request,
             HttpServletRequest httpRequest) {
@@ -134,7 +138,7 @@ public class KnowledgeController {
 
     @PutMapping("/contents/{id}")
     @RequirePermission("admin:api:knowledge-content:update")
-    @Log(operationType = OperationType.UPDATE, operationModule = OperationModule.OTHER, operationDesc = "更新知识库内容")
+    @Log(operationType = KnowledgeOperation.C.CONTENT_UPDATE, operationModule = KnowledgeModule.C.KNOWLEDGE, operationDesc = "更新知识库内容")
     public Response<Void> updateContent(@PathVariable Long id, @RequestBody KnowledgeContentUpdateRequest request) {
         knowledgeContentService.updateAdminContent(id, request);
         return Response.success();
@@ -142,7 +146,7 @@ public class KnowledgeController {
 
     @DeleteMapping("/contents/{id}")
     @RequirePermission("admin:api:knowledge-content:delete")
-    @Log(operationType = OperationType.DELETE, operationModule = OperationModule.OTHER, operationDesc = "删除知识库内容")
+    @Log(operationType = KnowledgeOperation.C.CONTENT_DELETE, operationModule = KnowledgeModule.C.KNOWLEDGE, operationDesc = "删除知识库内容")
     public Response<Void> deleteContent(@PathVariable Long id) {
         knowledgeContentService.deleteAdminContent(id);
         return Response.success();
@@ -159,6 +163,7 @@ public class KnowledgeController {
 
     @GetMapping("/tags/{id}")
     @RequirePermission("admin:api:knowledge-tag:detail")
+    @Log(operationType = KnowledgeOperation.C.TAG_DETAIL, operationModule = KnowledgeModule.C.KNOWLEDGE, operationDesc = "根据ID获取知识库标签详情")
     public Response<KnowledgeTagResponse> getTagById(@PathVariable Long id) {
         KnowledgeTagResponse response = knowledgeTagService.getAdminTagById(id);
         if (response == null) return Response.fail("标签不存在");
@@ -167,7 +172,7 @@ public class KnowledgeController {
 
     @PostMapping("/tags")
     @RequirePermission("admin:api:knowledge-tag:create")
-    @Log(operationType = OperationType.ADD, operationModule = OperationModule.OTHER, operationDesc = "新增知识库标签")
+    @Log(operationType = KnowledgeOperation.C.TAG_ADD, operationModule = KnowledgeModule.C.KNOWLEDGE, operationDesc = "新增知识库标签")
     public Response<KnowledgeTagResponse> createTag(@Valid @RequestBody KnowledgeTagCreateRequest request) {
         KnowledgeTagResponse response = knowledgeTagService.createAdminTag(request);
         return Response.success(response);
@@ -175,7 +180,7 @@ public class KnowledgeController {
 
     @PutMapping("/tags/{id}")
     @RequirePermission("admin:api:knowledge-tag:update")
-    @Log(operationType = OperationType.UPDATE, operationModule = OperationModule.OTHER, operationDesc = "更新知识库标签")
+    @Log(operationType = KnowledgeOperation.C.TAG_UPDATE, operationModule = KnowledgeModule.C.KNOWLEDGE, operationDesc = "更新知识库标签")
     public Response<Void> updateTag(@PathVariable Long id, @Valid @RequestBody KnowledgeTagUpdateRequest request) {
         knowledgeTagService.updateAdminTag(id, request);
         return Response.success();
@@ -183,7 +188,7 @@ public class KnowledgeController {
 
     @DeleteMapping("/tags/{id}")
     @RequirePermission("admin:api:knowledge-tag:delete")
-    @Log(operationType = OperationType.DELETE, operationModule = OperationModule.OTHER, operationDesc = "删除知识库标签")
+    @Log(operationType = KnowledgeOperation.C.TAG_DELETE, operationModule = KnowledgeModule.C.KNOWLEDGE, operationDesc = "删除知识库标签")
     public Response<Void> deleteTag(@PathVariable Long id) {
         knowledgeTagService.deleteAdminTag(id);
         return Response.success();

@@ -79,9 +79,9 @@ public class LogAspect {
             Method method = signature.getMethod();
             Log logAnnotation = method.getAnnotation(Log.class);
 
-            // 设置操作类型、模块、描述
-            operationLog.setOperationType(logAnnotation.operationType().getValue());
-            operationLog.setOperationModule(logAnnotation.operationModule().getValue());
+            // 设置操作类型、模块、描述（注解中为各枚举 getValue() 的字符串）
+            operationLog.setOperationType(logAnnotation.operationType());
+            operationLog.setOperationModule(logAnnotation.operationModule());
             operationLog.setOperationDesc(logAnnotation.operationDesc());
 
             // 设置请求信息

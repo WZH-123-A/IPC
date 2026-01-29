@@ -2,8 +2,8 @@ package com.ccs.ipc.controller.admin;
 
 import com.ccs.ipc.common.annotation.Log;
 import com.ccs.ipc.common.annotation.RequirePermission;
-import com.ccs.ipc.common.enums.OperationModule;
-import com.ccs.ipc.common.enums.OperationType;
+import com.ccs.ipc.common.enums.log.OperationLogModule;
+import com.ccs.ipc.common.enums.log.OperationLogOperation;
 import com.ccs.ipc.common.response.Response;
 import com.ccs.ipc.dto.logdto.OperationLogListRequest;
 import com.ccs.ipc.dto.logdto.OperationLogListResponse;
@@ -40,6 +40,7 @@ public class OperationLogController {
      */
     @GetMapping("/{id}")
     @RequirePermission("admin:api:operation-log:detail")
+    @Log(operationType = OperationLogOperation.C.QUERY_DETAIL, operationModule = OperationLogModule.C.OPERATION_LOG, operationDesc = "根据ID获取操作日志详情")
     public Response<OperationLogResponse> getOperationLogById(@PathVariable Long id) {
         OperationLogResponse response = sysOperationLogService.getOperationLogById(id);
         return Response.success(response);
@@ -50,7 +51,7 @@ public class OperationLogController {
      */
     @DeleteMapping("/{id}")
     @RequirePermission("admin:api:operation-log:delete")
-    @Log(operationType = OperationType.DELETE, operationModule = OperationModule.LOG, operationDesc = "删除操作日志")
+    @Log(operationType = OperationLogOperation.C.DELETE, operationModule = OperationLogModule.C.OPERATION_LOG, operationDesc = "删除操作日志")
     public Response<Void> deleteOperationLog(@PathVariable Long id) {
         sysOperationLogService.removeById(id);
         return Response.success();
@@ -61,7 +62,7 @@ public class OperationLogController {
      */
     @DeleteMapping("/batch")
     @RequirePermission("admin:api:operation-log:delete")
-    @Log(operationType = OperationType.DELETE, operationModule = OperationModule.LOG, operationDesc = "批量删除操作日志")
+    @Log(operationType = OperationLogOperation.C.BATCH_DELETE, operationModule = OperationLogModule.C.OPERATION_LOG, operationDesc = "批量删除操作日志")
     public Response<Void> batchDeleteOperationLog(@RequestBody java.util.List<Long> ids) {
         sysOperationLogService.removeByIds(ids);
         return Response.success();

@@ -2,8 +2,8 @@ package com.ccs.ipc.controller.doctor;
 
 import com.ccs.ipc.common.annotation.Log;
 import com.ccs.ipc.common.annotation.RequirePermission;
-import com.ccs.ipc.common.enums.OperationModule;
-import com.ccs.ipc.common.enums.OperationType;
+import com.ccs.ipc.common.enums.log.DoctorModule;
+import com.ccs.ipc.common.enums.log.DoctorOperation;
 import com.ccs.ipc.common.response.Response;
 import com.ccs.ipc.common.util.UserContext;
 import com.ccs.ipc.dto.common.FileUploadResponse;
@@ -48,7 +48,7 @@ public class DoctorController {
      */
     @GetMapping("/home")
     @RequirePermission("doctor:api:doctor-info:list")
-    @Log(operationType = OperationType.QUERY, operationModule = OperationModule.USER, operationDesc = "获取医生首页数据")
+    @Log(operationType = DoctorOperation.C.QUERY_HOME, operationModule = DoctorModule.C.DOCTOR, operationDesc = "获取医生首页数据")
     public Response<DoctorHomeResponse> getDoctorHome(HttpServletRequest request) {
         Long doctorId = UserContext.getUserId(request);
         DoctorHomeResponse response = doctorInfoService.getDoctorHome(doctorId);
@@ -60,7 +60,7 @@ public class DoctorController {
      */
     @GetMapping("/patients")
     @RequirePermission("doctor:api:doctor-info:list")
-    @Log(operationType = OperationType.QUERY, operationModule = OperationModule.USER, operationDesc = "分页查询患者列表")
+    @Log(operationType = DoctorOperation.C.QUERY_PATIENT_LIST, operationModule = DoctorModule.C.DOCTOR, operationDesc = "分页查询患者列表")
     public Response<PatientListResponse> getPatientList(PatientListRequest request, HttpServletRequest httpRequest) {
         Long doctorId = UserContext.getUserId(httpRequest);
         PatientListResponse response = doctorInfoService.getPatientList(doctorId, request);
@@ -72,7 +72,7 @@ public class DoctorController {
      */
     @GetMapping("/consultations")
     @RequirePermission("doctor:api:doctor-info:list")
-    @Log(operationType = OperationType.QUERY, operationModule = OperationModule.USER, operationDesc = "分页查询问诊列表")
+    @Log(operationType = DoctorOperation.C.QUERY_CONSULTATION_LIST, operationModule = DoctorModule.C.DOCTOR, operationDesc = "分页查询问诊列表")
     public Response<ConsultationListResponse> getConsultationList(ConsultationListRequest request, HttpServletRequest httpRequest) {
         Long doctorId = UserContext.getUserId(httpRequest);
         ConsultationListResponse response = doctorInfoService.getConsultationList(doctorId, request);
@@ -84,7 +84,7 @@ public class DoctorController {
      */
     @GetMapping("/consultations/{sessionId}/messages")
     @RequirePermission("doctor:api:consultation-message:list")
-    @Log(operationType = OperationType.QUERY, operationModule = OperationModule.USER, operationDesc = "获取问诊消息列表")
+    @Log(operationType = DoctorOperation.C.QUERY_MESSAGES, operationModule = DoctorModule.C.DOCTOR, operationDesc = "获取问诊消息列表")
     public Response<ConsultationMessageListResponse> getConsultationMessages(
             @PathVariable Long sessionId,
             ConsultationMessageListRequest request,
@@ -99,7 +99,7 @@ public class DoctorController {
      */
     @PostMapping("/consultations/messages")
     @RequirePermission("doctor:api:consultation-message:create")
-    @Log(operationType = OperationType.ADD, operationModule = OperationModule.USER, operationDesc = "医生发送消息")
+    @Log(operationType = DoctorOperation.C.SEND_MESSAGE, operationModule = DoctorModule.C.DOCTOR, operationDesc = "医生发送消息")
     public Response<ConsultationMessageResponse> sendMessage(
             @RequestBody SendMessageRequest request,
             HttpServletRequest httpRequest) {
@@ -113,7 +113,7 @@ public class DoctorController {
      */
     @PostMapping("/consultations/upload")
     @RequirePermission("doctor:api:consultation-message:create")
-    @Log(operationType = OperationType.ADD, operationModule = OperationModule.USER, operationDesc = "医生上传问诊聊天文件")
+    @Log(operationType = DoctorOperation.C.UPLOAD_FILE, operationModule = DoctorModule.C.DOCTOR, operationDesc = "医生上传问诊聊天文件")
     public Response<FileUploadResponse> uploadConsultationFile(
             @RequestParam("file") MultipartFile file,
             HttpServletRequest httpRequest) {
@@ -131,7 +131,7 @@ public class DoctorController {
      */
     @PostMapping("/consultations/{sessionId}/end")
     @RequirePermission("doctor:api:consultation-session:update")
-    @Log(operationType = OperationType.UPDATE, operationModule = OperationModule.USER, operationDesc = "医生结束问诊")
+    @Log(operationType = DoctorOperation.C.END_CONSULTATION, operationModule = DoctorModule.C.DOCTOR, operationDesc = "医生结束问诊")
     public Response<Void> endConsultation(
             @PathVariable Long sessionId,
             HttpServletRequest httpRequest) {
@@ -145,7 +145,7 @@ public class DoctorController {
      */
     @PostMapping("/consultations/{sessionId}/messages/mark-all-read")
     @RequirePermission("doctor:api:consultation-message:update")
-    @Log(operationType = OperationType.UPDATE, operationModule = OperationModule.USER, operationDesc = "医生批量标记消息为已读")
+    @Log(operationType = DoctorOperation.C.MARK_MESSAGES_READ, operationModule = DoctorModule.C.DOCTOR, operationDesc = "医生批量标记消息为已读")
     public Response<Void> markAllMessagesAsRead(
             @PathVariable Long sessionId,
             HttpServletRequest httpRequest) {

@@ -1,12 +1,10 @@
 package com.ccs.ipc.common.annotation;
 
-import com.ccs.ipc.common.enums.OperationModule;
-import com.ccs.ipc.common.enums.OperationType;
-
 import java.lang.annotation.*;
 
 /**
  * 操作日志注解
+ * 每个 Controller 使用自己的模块枚举与操作方法枚举，传 getValue() 得到的字符串
  *
  * @author WZH
  * @since 2026-01-19
@@ -17,14 +15,14 @@ import java.lang.annotation.*;
 public @interface Log {
 
     /**
-     * 操作类型
+     * 操作类型（各模块操作枚举的 getValue()）
      */
-    OperationType operationType();
+    String operationType();
 
     /**
-     * 操作模块
+     * 操作模块（各 Controller 模块枚举的 getValue()）
      */
-    OperationModule operationModule();
+    String operationModule();
 
     /**
      * 操作描述
