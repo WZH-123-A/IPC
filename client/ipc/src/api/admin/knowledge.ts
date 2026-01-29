@@ -104,6 +104,8 @@ export interface KnowledgeContent {
   publishTime?: string
   createTime?: string
   updateTime?: string
+  /** 关联的标签ID列表 */
+  tagIds?: number[]
 }
 
 export interface KnowledgeContentListParams {
@@ -134,6 +136,7 @@ export interface KnowledgeContentCreateParams {
   source?: string
   author?: string
   status?: number
+  tagIds?: number[]
 }
 
 export interface KnowledgeContentUpdateParams {
@@ -149,6 +152,7 @@ export interface KnowledgeContentUpdateParams {
   source?: string
   author?: string
   status?: number
+  tagIds?: number[]
 }
 
 export const getContentListApi = async (params: KnowledgeContentListParams) => {

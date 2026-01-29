@@ -3,6 +3,8 @@ package com.ccs.ipc.dto.admindto;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
+import java.util.List;
+
 @Data
 public class KnowledgeContentCreateRequest {
     @NotNull(message = "分类不能为空")
@@ -20,4 +22,6 @@ public class KnowledgeContentCreateRequest {
     private String source;
     private String author;
     private Byte status = 1; // 0-草稿 1-已发布 2-已下架
+    /** 关联的标签ID列表（内容-标签关联） */
+    private List<Long> tagIds;
 }

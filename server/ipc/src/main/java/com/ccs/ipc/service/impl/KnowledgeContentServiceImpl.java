@@ -137,9 +137,18 @@ public class KnowledgeContentServiceImpl extends ServiceImpl<KnowledgeContentMap
         Page<KnowledgeContent> page = new Page<>(current, size);
         Page<KnowledgeContent> result = this.page(page, qw);
         List<KnowledgeContent> records = result.getRecords();
+        Set<Long> contentIds = records.stream().map(KnowledgeContent::getId).collect(Collectors.toSet());
         Set<Long> categoryIds = records.stream().map(KnowledgeContent::getCategoryId).collect(Collectors.toSet());
         Map<Long, KnowledgeCategory> categoryMap = categoryIds.isEmpty() ? Map.of() : knowledgeCategoryService.listByIds(categoryIds).stream().collect(Collectors.toMap(KnowledgeCategory::getId, c -> c));
-        List<KnowledgeContentResponse> list = records.stream().map(c -> toAdminResponse(c, categoryMap.get(c.getCategoryId()))).collect(Collectors.toList());
+        Map<Long, List<Long>> contentIdToTagIds = contentIds.isEmpty() ? Map.of() : knowledgeContentTagService.lambdaQuery()
+                .in(KnowledgeContentTag::getContentId, contentIds)
+                .list().stream()
+                .collect(Collectors.groupingBy(KnowledgeContentTag::getContentId, Collectors.mapping(KnowledgeContentTag::getTagId, Collectors.toList())));
+        List<KnowledgeContentResponse> list = records.stream().map(c -> {
+            KnowledgeContentResponse r = toAdminResponse(c, categoryMap.get(c.getCategoryId()));
+            r.setTagIds(contentIdToTagIds.getOrDefault(c.getId(), Collections.emptyList()));
+            return r;
+        }).collect(Collectors.toList());
         AdminKnowledgeContentListResponse resp = new AdminKnowledgeContentListResponse();
         resp.setRecords(list);
         resp.setTotal(result.getTotal());
@@ -153,7 +162,12 @@ public class KnowledgeContentServiceImpl extends ServiceImpl<KnowledgeContentMap
         KnowledgeContent c = this.getById(id);
         if (c == null || c.getIsDeleted() == 1) return null;
         KnowledgeCategory cat = knowledgeCategoryService.getById(c.getCategoryId());
-        return toAdminResponse(c, cat);
+        KnowledgeContentResponse r = toAdminResponse(c, cat);
+        List<KnowledgeContentTag> ctList = knowledgeContentTagService.lambdaQuery()
+                .eq(KnowledgeContentTag::getContentId, id)
+                .list();
+        r.setTagIds(ctList.stream().map(KnowledgeContentTag::getTagId).collect(Collectors.toList()));
+        return r;
     }
 
     @Override
@@ -178,6 +192,14 @@ public class KnowledgeContentServiceImpl extends ServiceImpl<KnowledgeContentMap
         c.setCreateBy(createBy);
         c.setIsDeleted((byte) 0);
         this.save(c);
+        if (request.getTagIds() != null && !request.getTagIds().isEmpty()) {
+            for (Long tagId : request.getTagIds()) {
+                KnowledgeContentTag ct = new KnowledgeContentTag();
+                ct.setContentId(c.getId());
+                ct.setTagId(tagId);
+                knowledgeContentTagService.save(ct);
+            }
+        }
         KnowledgeCategory cat = knowledgeCategoryService.getById(c.getCategoryId());
         return toAdminResponse(c, cat);
     }
@@ -204,6 +226,17 @@ public class KnowledgeContentServiceImpl extends ServiceImpl<KnowledgeContentMap
             }
         }
         this.updateById(c);
+        if (request.getTagIds() != null) {
+            knowledgeContentTagService.lambdaUpdate()
+                    .eq(KnowledgeContentTag::getContentId, id)
+                    .remove();
+            for (Long tagId : request.getTagIds()) {
+                KnowledgeContentTag ct = new KnowledgeContentTag();
+                ct.setContentId(id);
+                ct.setTagId(tagId);
+                knowledgeContentTagService.save(ct);
+            }
+        }
     }
 
     @Override

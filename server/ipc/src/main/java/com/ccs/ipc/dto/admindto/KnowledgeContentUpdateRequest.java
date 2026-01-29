@@ -2,6 +2,8 @@ package com.ccs.ipc.dto.admindto;
 
 import lombok.Data;
 
+import java.util.List;
+
 @Data
 public class KnowledgeContentUpdateRequest {
     private Long categoryId;
@@ -16,4 +18,6 @@ public class KnowledgeContentUpdateRequest {
     private String source;
     private String author;
     private Byte status;
+    /** 关联的标签ID列表（内容-标签关联，传空列表表示清空） */
+    private List<Long> tagIds;
 }

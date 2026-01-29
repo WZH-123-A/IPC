@@ -3,6 +3,7 @@ package com.ccs.ipc.dto.admindto;
 import lombok.Data;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 public class KnowledgeContentResponse {
@@ -26,4 +27,6 @@ public class KnowledgeContentResponse {
     private LocalDateTime publishTime;
     private LocalDateTime createTime;
     private LocalDateTime updateTime;
+    /** 关联的标签ID列表（内容-标签关联） */
+    private List<Long> tagIds;
 }

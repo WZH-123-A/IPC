@@ -69,6 +69,11 @@
           {{ statusLabel((row as KnowledgeContent).status) }}
         </template>
       </el-table-column>
+      <el-table-column label="标签" min-width="140" show-overflow-tooltip>
+        <template #default="{ row }">
+          {{ getTagNames((row as KnowledgeContent).tagIds) }}
+        </template>
+      </el-table-column>
       <el-table-column prop="viewCount" label="浏览" width="70" />
       <el-table-column prop="createTime" label="创建时间" width="180" />
     </template>
@@ -152,6 +157,24 @@
         <el-form-item label="作者">
           <el-input v-model="formData.author" placeholder="选填" />
         </el-form-item>
+        <el-form-item label="标签">
+          <el-select
+            v-model="formData.tagIds"
+            multiple
+            collapse-tags
+            collapse-tags-tooltip
+            placeholder="请选择标签（可多选）"
+            style="width: 100%"
+            value-key="id"
+          >
+            <el-option
+              v-for="t in tagOptions"
+              :key="t.id"
+              :label="t.tagName"
+              :value="t.id"
+            />
+          </el-select>
+        </el-form-item>
         <el-form-item label="状态">
           <el-select v-model="formData.status" style="width: 120px">
             <el-option label="草稿" :value="0" />
@@ -170,6 +193,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import BaseManageView from '../../../components/admin/BaseManageView.vue'
 import {
   getCategoryListApi,
+  getTagListApi,
   getContentListApi,
   getContentByIdApi,
   createContentApi,
@@ -177,6 +201,7 @@ import {
   deleteContentApi,
   uploadKnowledgeImageApi,
   type KnowledgeCategory,
+  type KnowledgeTag,
   type KnowledgeContent,
   type KnowledgeContentListParams,
   type KnowledgeContentCreateParams,
@@ -185,6 +210,7 @@ import {
 
 const baseRef = ref<InstanceType<typeof BaseManageView>>()
 const categoryOptions = ref<KnowledgeCategory[]>([])
+const tagOptions = ref<KnowledgeTag[]>([])
 const uploading = ref(false)
 const coverInputRef = ref<HTMLInputElement | null>(null)
 
@@ -205,12 +231,29 @@ function statusLabel(s?: number): string {
   return s != null ? (m[s] ?? '-') : '-'
 }
 
+function getTagNames(ids?: number[]): string {
+  if (!ids?.length) return '-'
+  return ids
+    .map((id) => tagOptions.value.find((t) => t.id === id)?.tagName)
+    .filter(Boolean)
+    .join('，') || '-'
+}
+
 const loadCategories = async () => {
   try {
     const res = await getCategoryListApi({ current: 1, size: 500 })
     categoryOptions.value = res.records
   } catch {
     categoryOptions.value = []
+  }
+}
+
+const loadTags = async () => {
+  try {
+    const res = await getTagListApi({ current: 1, size: 500 })
+    tagOptions.value = res.records
+  } catch {
+    tagOptions.value = []
   }
 }
 
@@ -249,6 +292,7 @@ const handleAdd = () => {
   if (!baseRef.value) return
   baseRef.value.formData.contentType = 1
   baseRef.value.formData.status = 1
+  baseRef.value.formData.tagIds = []
 }
 
 const handleEdit = async (row: KnowledgeContent) => {
@@ -256,6 +300,7 @@ const handleEdit = async (row: KnowledgeContent) => {
   try {
     const detail = await getContentByIdApi(row.id)
     Object.assign(baseRef.value.formData, detail)
+    baseRef.value.formData.tagIds = Array.isArray(detail.tagIds) ? [...detail.tagIds] : []
   } catch (error: unknown) {
     ElMessage.error(error instanceof Error ? error.message : '获取内容详情失败')
   }
@@ -333,6 +378,7 @@ const handleSubmit = async (payload: Record<string, unknown> & { isEdit?: boolea
         source: payload.source as string,
         author: payload.author as string,
         status: payload.status as number,
+        tagIds: Array.isArray(payload.tagIds) ? payload.tagIds : [],
       }
       await updateContentApi(id, data)
       ElMessage.success('更新成功')
@@ -350,6 +396,7 @@ const handleSubmit = async (payload: Record<string, unknown> & { isEdit?: boolea
         source: payload.source as string,
         author: payload.author as string,
         status: (payload.status as number) ?? 1,
+        tagIds: Array.isArray(payload.tagIds) ? payload.tagIds : [],
       }
       await createContentApi(data)
       ElMessage.success('新增成功')
@@ -362,7 +409,7 @@ const handleSubmit = async (payload: Record<string, unknown> & { isEdit?: boolea
 }
 
 onMounted(async () => {
-  await loadCategories()
+  await Promise.all([loadCategories(), loadTags()])
   if (baseRef.value) {
     baseRef.value.searchForm = { categoryId: undefined, title: '', status: undefined }
   }
