@@ -262,6 +262,16 @@ export const permissionRoutes: RouteRecordRaw[] = [
           permission: 'patient:diagnosis',
         },
       },
+      {
+        path: 'knowledge',
+        name: 'patient-knowledge',
+        component: () => import('../views/patient/KnowledgeView.vue'),
+        meta: {
+          title: '病知识库',
+          requiresAuth: true,
+          permission: 'patient:knowledge',
+        },
+      },
     ],
   },
   // 医生相关路由（使用布局组件）

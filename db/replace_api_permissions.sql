@@ -77,6 +77,8 @@ FROM (
   UNION ALL SELECT 'patient:api:doctor-info:list', '医生信息列表接口', 11
   UNION ALL SELECT 'patient:api:consultation-evaluation:detail', '查询问诊评价接口', 12
   UNION ALL SELECT 'patient:api:consultation-evaluation:create', '提交问诊评价接口', 13
+  UNION ALL SELECT 'patient:api:knowledge:list', '知识库列表接口', 14
+  UNION ALL SELECT 'patient:api:knowledge:detail', '知识库详情接口', 15
 ) AS d
 CROSS JOIN (SELECT id FROM sys_permission WHERE permission_code = 'api:patient:group' AND is_deleted = 0 LIMIT 1) AS p;
 

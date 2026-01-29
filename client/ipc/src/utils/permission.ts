@@ -77,6 +77,7 @@ export const patientPermissionToRouteMap: Record<string, string> = {
   'patient:home:menu': '/patient/home',
   'patient:consultation:menu': '/patient/consultation',
   'patient:diagnosis:menu': '/patient/diagnosis',
+  'patient:knowledge:menu': '/patient/knowledge',
 }
 
 /** 患者端菜单：权限编码 -> 图标名 */
@@ -84,6 +85,7 @@ export const patientPermissionToIconMap: Record<string, string> = {
   'patient:home:menu': 'HomeFilled',
   'patient:consultation:menu': 'ChatDotRound',
   'patient:diagnosis:menu': 'Search',
+  'patient:knowledge:menu': 'Reading',
 }
 
 /** 医生端菜单：权限编码 -> 路由路径 */

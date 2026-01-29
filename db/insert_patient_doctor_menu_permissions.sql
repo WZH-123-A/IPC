@@ -52,6 +52,14 @@ INSERT IGNORE INTO `sys_permission` (
     (SELECT id FROM (SELECT id FROM `sys_permission` WHERE `permission_code` = 'patient-menu:group' AND `is_deleted` = 0 LIMIT 1) t),
     2,
     0
+),
+(
+    'patient:knowledge:menu',
+    '病知识库',
+    1,
+    (SELECT id FROM (SELECT id FROM `sys_permission` WHERE `permission_code` = 'patient-menu:group' AND `is_deleted` = 0 LIMIT 1) t),
+    3,
+    0
 );
 
 -- 3. 医生菜单权限分组（type=1 菜单，顶级 parent_id=0，与管理员菜单分组平级）

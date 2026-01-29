@@ -12,6 +12,8 @@ import com.ccs.ipc.entity.ConsultationSession;
 import com.ccs.ipc.file.LocalFileStorageService;
 import com.ccs.ipc.service.*;
 import com.ccs.ipc.service.IConsultationEvaluationService;
+import com.ccs.ipc.service.IKnowledgeCategoryService;
+import com.ccs.ipc.service.IKnowledgeContentService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -54,6 +56,12 @@ public class PatientController {
 
     @Autowired
     private IConsultationEvaluationService consultationEvaluationService;
+
+    @Autowired
+    private IKnowledgeCategoryService knowledgeCategoryService;
+
+    @Autowired
+    private IKnowledgeContentService knowledgeContentService;
 
     // ==================== 问诊相关接口 ====================
 
@@ -347,6 +355,53 @@ public class PatientController {
     public Response<List<com.ccs.ipc.dto.patientdto.DoctorSimpleResponse>> getAvailableDoctors() {
         try {
             List<com.ccs.ipc.dto.patientdto.DoctorSimpleResponse> response = doctorInfoService.getAvailableDoctors();
+            return Response.success(response);
+        } catch (Exception e) {
+            return Response.fail(e.getMessage());
+        }
+    }
+
+    // ==================== 病知识库 ====================
+
+    /**
+     * 获取知识库分类列表（患者端，仅顶级已发布分类）
+     */
+    @GetMapping("/knowledge/categories")
+    @RequirePermission("patient:api:knowledge:list")
+    public Response<List<KnowledgeCategorySimple>> getKnowledgeCategories() {
+        try {
+            List<KnowledgeCategorySimple> response = knowledgeCategoryService.listForPatient();
+            return Response.success(response);
+        } catch (Exception e) {
+            return Response.fail(e.getMessage());
+        }
+    }
+
+    /**
+     * 分页查询知识库内容（患者端，仅已发布）
+     */
+    @GetMapping("/knowledge/contents")
+    @RequirePermission("patient:api:knowledge:list")
+    public Response<KnowledgeContentListResponse> getKnowledgeContents(KnowledgeContentListRequest request) {
+        try {
+            KnowledgeContentListResponse response = knowledgeContentService.listForPatient(request);
+            return Response.success(response);
+        } catch (Exception e) {
+            return Response.fail(e.getMessage());
+        }
+    }
+
+    /**
+     * 获取知识库内容详情（患者端，并增加浏览次数）
+     */
+    @GetMapping("/knowledge/contents/{id}")
+    @RequirePermission("patient:api:knowledge:detail")
+    public Response<KnowledgeContentDetail> getKnowledgeContentDetail(@PathVariable Long id) {
+        try {
+            KnowledgeContentDetail response = knowledgeContentService.getDetailForPatient(id);
+            if (response == null) {
+                return Response.fail("内容不存在或已下架");
+            }
             return Response.success(response);
         } catch (Exception e) {
             return Response.fail(e.getMessage());
