@@ -45,7 +45,20 @@
         @image-pick="$emit('image-pick')"
       />
       <div v-else class="chat-ended">
-        <el-alert type="info" :closable="false">此问诊已结束</el-alert>
+        <el-alert type="info" :closable="false" class="ended-alert">此问诊已结束</el-alert>
+        <div v-if="evaluation" class="evaluation-done">
+          <span>已评价：</span>
+          <el-rate :model-value="evaluation.rating" disabled show-score text-color="#ff9900" />
+          <p v-if="evaluation.comment" class="evaluation-comment">{{ evaluation.comment }}</p>
+        </div>
+        <el-button
+          v-else
+          type="primary"
+          size="small"
+          @click="$emit('evaluate')"
+        >
+          评价本次问诊
+        </el-button>
       </div>
     </div>
   </div>
@@ -58,14 +71,24 @@ import MessageList from './MessageList.vue'
 import ChatInput from './ChatInput.vue'
 import type { ConsultationSession, ConsultationMessage } from '../../api/patient/consultation'
 
+interface EvaluationInfo {
+  id: number
+  sessionId: number
+  rating: number
+  comment?: string
+  createTime: string
+}
+
 interface Props {
   session: ConsultationSession | null
   messages: ConsultationMessage[]
+  evaluation?: EvaluationInfo | null
   loadingMessages?: boolean
   sending?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
+  evaluation: null,
   loadingMessages: false,
   sending: false,
 })
@@ -75,6 +98,7 @@ const emit = defineEmits<{
   end: []
   send: [message: string]
   'image-pick': []
+  evaluate: []
 }>()
 
 const messageListRef = ref<InstanceType<typeof MessageList> | null>(null)
@@ -132,6 +156,27 @@ const handleSend = (message: string) => {
 .chat-ended {
   padding: 16px 20px;
   border-top: 1px solid #ebeef5;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.ended-alert {
+  margin: 0;
+}
+
+.evaluation-done {
+  font-size: 14px;
+  color: var(--el-text-color-regular);
+}
+
+.evaluation-done .evaluation-comment {
+  margin: 8px 0 0;
+  padding: 8px;
+  background: var(--el-fill-color-light);
+  border-radius: 6px;
+  font-size: 13px;
+  color: var(--el-text-color-secondary);
 }
 </style>
 

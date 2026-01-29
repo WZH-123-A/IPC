@@ -7,6 +7,8 @@ import com.ccs.ipc.dto.admindto.AdminConsultationEvaluationListRequest;
 import com.ccs.ipc.dto.admindto.AdminConsultationEvaluationListResponse;
 import com.ccs.ipc.dto.admindto.AdminConsultationEvaluationResponse;
 import com.ccs.ipc.dto.admindto.AdminConsultationEvaluationUpdateRequest;
+import com.ccs.ipc.dto.patientdto.EvaluationResponse;
+import com.ccs.ipc.dto.patientdto.SubmitEvaluationRequest;
 import com.ccs.ipc.entity.ConsultationEvaluation;
 import com.ccs.ipc.entity.ConsultationSession;
 import com.ccs.ipc.entity.SysUser;
@@ -171,5 +173,57 @@ public class ConsultationEvaluationServiceImpl extends ServiceImpl<ConsultationE
         }
         e.setIsDeleted((byte) 1);
         this.updateById(e);
+    }
+
+    @Override
+    @org.springframework.transaction.annotation.Transactional(rollbackFor = Exception.class)
+    public EvaluationResponse submitPatientEvaluation(Long sessionId, Long patientId, SubmitEvaluationRequest request) {
+        ConsultationSession session = consultationSessionService.getById(sessionId);
+        if (session == null || session.getIsDeleted() == 1) {
+            throw new RuntimeException("问诊会话不存在");
+        }
+        if (!session.getPatientId().equals(patientId)) {
+            throw new RuntimeException("无权对该会话进行评价");
+        }
+        if (session.getStatus() == null || session.getStatus() != 1) {
+            throw new RuntimeException("仅能对已结束的问诊进行评价");
+        }
+        long count = this.count(new LambdaQueryWrapper<ConsultationEvaluation>()
+                .eq(ConsultationEvaluation::getSessionId, sessionId)
+                .eq(ConsultationEvaluation::getIsDeleted, 0));
+        if (count > 0) {
+            throw new RuntimeException("该问诊已评价过，不可重复评价");
+        }
+        ConsultationEvaluation e = new ConsultationEvaluation();
+        e.setSessionId(sessionId);
+        e.setPatientId(patientId);
+        e.setDoctorId(session.getSessionType() != null && session.getSessionType() == 2 ? session.getDoctorId() : null);
+        e.setRating(request.getRating());
+        e.setComment(request.getComment());
+        e.setIsDeleted((byte) 0);
+        this.save(e);
+        return toEvaluationResponse(e);
+    }
+
+    @Override
+    public EvaluationResponse getBySessionId(Long sessionId) {
+        ConsultationEvaluation e = this.getOne(new LambdaQueryWrapper<ConsultationEvaluation>()
+                .eq(ConsultationEvaluation::getSessionId, sessionId)
+                .eq(ConsultationEvaluation::getIsDeleted, 0)
+                .last("LIMIT 1"));
+        if (e == null) {
+            return null;
+        }
+        return toEvaluationResponse(e);
+    }
+
+    private EvaluationResponse toEvaluationResponse(ConsultationEvaluation e) {
+        EvaluationResponse resp = new EvaluationResponse();
+        resp.setId(e.getId());
+        resp.setSessionId(e.getSessionId());
+        resp.setRating(e.getRating());
+        resp.setComment(e.getComment());
+        resp.setCreateTime(e.getCreateTime());
+        return resp;
     }
 }

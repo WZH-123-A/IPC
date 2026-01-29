@@ -8,8 +8,10 @@ import com.ccs.ipc.common.response.Response;
 import com.ccs.ipc.common.util.UserContext;
 import com.ccs.ipc.dto.common.FileUploadResponse;
 import com.ccs.ipc.dto.patientdto.*;
+import com.ccs.ipc.entity.ConsultationSession;
 import com.ccs.ipc.file.LocalFileStorageService;
 import com.ccs.ipc.service.*;
+import com.ccs.ipc.service.IConsultationEvaluationService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -49,6 +51,9 @@ public class PatientController {
 
     @Autowired
     private LocalFileStorageService localFileStorageService;
+
+    @Autowired
+    private IConsultationEvaluationService consultationEvaluationService;
 
     // ==================== 问诊相关接口 ====================
 
@@ -186,6 +191,46 @@ public class PatientController {
         try {
             consultationMessageService.markAllAsRead(sessionId, userId);
             return Response.success();
+        } catch (Exception e) {
+            return Response.fail(e.getMessage());
+        }
+    }
+
+    /**
+     * 获取当前会话的评价（已评价则返回评价内容，未评价则无数据）
+     */
+    @GetMapping("/consultation/sessions/{sessionId}/evaluation")
+    @RequirePermission("patient:api:consultation-evaluation:detail")
+    public Response<EvaluationResponse> getSessionEvaluation(
+            @PathVariable Long sessionId,
+            HttpServletRequest httpRequest) {
+        Long userId = UserContext.getUserId(httpRequest);
+        try {
+            ConsultationSession session = consultationSessionService.getById(sessionId);
+            if (session == null || session.getIsDeleted() == 1 || !session.getPatientId().equals(userId)) {
+                return Response.fail("无权查看");
+            }
+            EvaluationResponse response = consultationEvaluationService.getBySessionId(sessionId);
+            return Response.success(response);
+        } catch (Exception e) {
+            return Response.fail(e.getMessage());
+        }
+    }
+
+    /**
+     * 患者提交问诊评价（仅已结束的会话、每个会话仅可评价一次）
+     */
+    @PostMapping("/consultation/sessions/{sessionId}/evaluation")
+    @RequirePermission("patient:api:consultation-evaluation:create")
+    @Log(operationType = OperationType.ADD, operationModule = OperationModule.OTHER, operationDesc = "提交问诊评价")
+    public Response<EvaluationResponse> submitEvaluation(
+            @PathVariable Long sessionId,
+            @Valid @RequestBody SubmitEvaluationRequest request,
+            HttpServletRequest httpRequest) {
+        Long userId = UserContext.getUserId(httpRequest);
+        try {
+            EvaluationResponse response = consultationEvaluationService.submitPatientEvaluation(sessionId, userId, request);
+            return Response.success(response);
         } catch (Exception e) {
             return Response.fail(e.getMessage());
         }

@@ -3,6 +3,8 @@ package com.ccs.ipc.service;
 import com.ccs.ipc.dto.admindto.AdminConsultationEvaluationListRequest;
 import com.ccs.ipc.dto.admindto.AdminConsultationEvaluationListResponse;
 import com.ccs.ipc.dto.admindto.AdminConsultationEvaluationResponse;
+import com.ccs.ipc.dto.patientdto.EvaluationResponse;
+import com.ccs.ipc.dto.patientdto.SubmitEvaluationRequest;
 import com.ccs.ipc.entity.ConsultationEvaluation;
 import com.baomidou.mybatisplus.extension.service.IService;
 
@@ -38,4 +40,14 @@ public interface IConsultationEvaluationService extends IService<ConsultationEva
      * 管理员逻辑删除问诊评价
      */
     void deleteAdminEvaluation(Long id);
+
+    /**
+     * 患者提交问诊评价（会话结束后、每个会话仅可评价一次）
+     */
+    EvaluationResponse submitPatientEvaluation(Long sessionId, Long patientId, SubmitEvaluationRequest request);
+
+    /**
+     * 根据会话ID查询评价（患者端，用于展示是否已评价）
+     */
+    EvaluationResponse getBySessionId(Long sessionId);
 }

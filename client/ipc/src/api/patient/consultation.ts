@@ -189,3 +189,46 @@ export const getAvailableDoctors = async (): Promise<ApiResponse<DoctorSimple[]>
   return response.data
 }
 
+// ==================== 问诊评价 ====================
+
+/** 问诊评价（患者端） */
+export interface Evaluation {
+  id: number
+  sessionId: number
+  rating: number
+  comment?: string
+  createTime: string
+}
+
+/** 提交评价请求 */
+export interface SubmitEvaluationRequest {
+  rating: number
+  comment?: string
+}
+
+/**
+ * 获取当前会话的评价（已评价则返回，未评价则 data 为 null）
+ */
+export const getEvaluationBySession = async (
+  sessionId: number
+): Promise<ApiResponse<Evaluation | null>> => {
+  const response = await request.get<ApiResponse<Evaluation | null>>(
+    `/patient/consultation/sessions/${sessionId}/evaluation`
+  )
+  return response.data
+}
+
+/**
+ * 提交问诊评价（仅已结束的会话、每个会话仅可评价一次）
+ */
+export const submitEvaluation = async (
+  sessionId: number,
+  data: SubmitEvaluationRequest
+): Promise<ApiResponse<Evaluation>> => {
+  const response = await request.post<ApiResponse<Evaluation>>(
+    `/patient/consultation/sessions/${sessionId}/evaluation`,
+    data
+  )
+  return response.data
+}
+
