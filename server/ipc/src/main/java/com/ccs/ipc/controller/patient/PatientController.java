@@ -1,4 +1,4 @@
-package com.ccs.ipc.controller;
+package com.ccs.ipc.controller.patient;
 
 import com.ccs.ipc.common.annotation.Log;
 import com.ccs.ipc.common.annotation.RequirePermission;
@@ -56,7 +56,7 @@ public class PatientController {
      * 获取问诊会话列表
      */
     @GetMapping("/consultation/sessions")
-    @RequirePermission("api:consultation-session:list")
+    @RequirePermission("patient:api:consultation-session:list")
     public Response<ConsultationSessionListResponse> getConsultationSessions(
             ConsultationSessionListRequest request,
             HttpServletRequest httpRequest) {
@@ -73,7 +73,7 @@ public class PatientController {
      * 获取问诊会话详情
      */
     @GetMapping("/consultation/sessions/{sessionId}")
-    @RequirePermission("api:consultation-session:detail")
+    @RequirePermission("patient:api:consultation-session:detail")
     public Response<ConsultationSessionResponse> getConsultationSession(
             @PathVariable Long sessionId,
             HttpServletRequest httpRequest) {
@@ -90,7 +90,7 @@ public class PatientController {
      * 创建问诊会话
      */
     @PostMapping("/consultation/sessions")
-    @RequirePermission("api:consultation-session:create")
+    @RequirePermission("patient:api:consultation-session:create")
     @Log(operationType = OperationType.ADD, operationModule = OperationModule.OTHER, operationDesc = "创建问诊会话")
     public Response<ConsultationSessionResponse> createConsultationSession(
             @Valid @RequestBody CreateConsultationSessionRequest request,
@@ -108,7 +108,7 @@ public class PatientController {
      * 结束问诊会话
      */
     @PostMapping("/consultation/sessions/{sessionId}/end")
-    @RequirePermission("api:consultation-session:update")
+    @RequirePermission("patient:api:consultation-session:update")
     @Log(operationType = OperationType.UPDATE, operationModule = OperationModule.OTHER, operationDesc = "结束问诊会话")
     public Response<Void> endConsultationSession(
             @PathVariable Long sessionId,
@@ -126,7 +126,7 @@ public class PatientController {
      * 获取问诊消息列表
      */
     @GetMapping("/consultation/sessions/{sessionId}/messages")
-    @RequirePermission("api:consultation-message:list")
+    @RequirePermission("patient:api:consultation-message:list")
     public Response<ConsultationMessageListResponse> getConsultationMessages(
             @PathVariable Long sessionId,
             ConsultationMessageListRequest request,
@@ -144,7 +144,7 @@ public class PatientController {
      * 发送消息
      */
     @PostMapping("/consultation/messages")
-    @RequirePermission("api:consultation-message:create")
+    @RequirePermission("patient:api:consultation-message:create")
     @Log(operationType = OperationType.ADD, operationModule = OperationModule.OTHER, operationDesc = "发送问诊消息")
     public Response<ConsultationMessageResponse> sendMessage(
             @Valid @RequestBody SendMessageRequest request,
@@ -162,7 +162,7 @@ public class PatientController {
      * 标记消息为已读
      */
     @PostMapping("/consultation/messages/{messageId}/read")
-    @RequirePermission("api:consultation-message:update")
+    @RequirePermission("patient:api:consultation-message:update")
     public Response<Void> markMessageAsRead(
             @PathVariable Long messageId,
             HttpServletRequest httpRequest) {
@@ -178,7 +178,7 @@ public class PatientController {
      * 批量标记会话的所有未读消息为已读
      */
     @PostMapping("/consultation/sessions/{sessionId}/messages/mark-all-read")
-    @RequirePermission("api:consultation-message:update")
+    @RequirePermission("patient:api:consultation-message:update")
     public Response<Void> markAllMessagesAsRead(
             @PathVariable Long sessionId,
             HttpServletRequest httpRequest) {
@@ -195,7 +195,7 @@ public class PatientController {
      * 上传问诊聊天文件（图片等），返回可访问的URL
      */
     @PostMapping("/consultation/upload")
-    @RequirePermission("api:consultation-message:create")
+    @RequirePermission("patient:api:consultation-message:create")
     @Log(operationType = OperationType.ADD, operationModule = OperationModule.OTHER, operationDesc = "上传问诊聊天文件")
     public Response<FileUploadResponse> uploadConsultationFile(
             @RequestParam("file") MultipartFile file,
@@ -215,7 +215,7 @@ public class PatientController {
      * 上传诊断图片
      */
     @PostMapping("/diagnosis/upload")
-    @RequirePermission("api:diagnosis:upload")
+    @RequirePermission("patient:api:diagnosis:upload")
     @Log(operationType = OperationType.ADD, operationModule = OperationModule.OTHER, operationDesc = "上传诊断图片")
     public Response<DiagnosisRecordResponse> uploadDiagnosisImage(
             @RequestParam("image") MultipartFile image,
@@ -234,7 +234,7 @@ public class PatientController {
      * 获取诊断记录列表
      */
     @GetMapping("/diagnosis/records")
-    @RequirePermission("api:skin-diagnosis-record:list")
+    @RequirePermission("patient:api:skin-diagnosis-record:list")
     public Response<DiagnosisRecordListResponse> getDiagnosisRecords(
             DiagnosisRecordListRequest request,
             HttpServletRequest httpRequest) {
@@ -251,7 +251,7 @@ public class PatientController {
      * 获取诊断记录详情
      */
     @GetMapping("/diagnosis/records/{recordId}")
-    @RequirePermission("api:skin-diagnosis-record:detail")
+    @RequirePermission("patient:api:skin-diagnosis-record:detail")
     public Response<DiagnosisRecordResponse> getDiagnosisRecord(
             @PathVariable Long recordId,
             HttpServletRequest httpRequest) {
@@ -268,7 +268,7 @@ public class PatientController {
      * 获取诊断结果
      */
     @GetMapping("/diagnosis/records/{recordId}/results")
-    @RequirePermission("api:diagnosis:result")
+    @RequirePermission("patient:api:diagnosis:result")
     public Response<List<DiagnosisResultResponse>> getDiagnosisResults(
             @PathVariable Long recordId,
             HttpServletRequest httpRequest) {
@@ -298,7 +298,7 @@ public class PatientController {
      * 获取可用的医生列表（用于选择医生）
      */
     @GetMapping("/consultation/doctors")
-    @RequirePermission("api:doctor-info:list")
+    @RequirePermission("patient:api:doctor-info:list")
     public Response<List<com.ccs.ipc.dto.patientdto.DoctorSimpleResponse>> getAvailableDoctors() {
         try {
             List<com.ccs.ipc.dto.patientdto.DoctorSimpleResponse> response = doctorInfoService.getAvailableDoctors();
@@ -308,4 +308,3 @@ public class PatientController {
         }
     }
 }
-

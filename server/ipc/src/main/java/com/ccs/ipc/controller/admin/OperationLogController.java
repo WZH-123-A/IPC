@@ -1,4 +1,4 @@
-package com.ccs.ipc.controller;
+package com.ccs.ipc.controller.admin;
 
 import com.ccs.ipc.common.annotation.Log;
 import com.ccs.ipc.common.annotation.RequirePermission;
@@ -19,7 +19,7 @@ import org.springframework.web.bind.annotation.*;
  * @since 2026-01-19
  */
 @RestController
-@RequestMapping("/api/operation-log")
+@RequestMapping("/api/admin/operation-log")
 public class OperationLogController {
 
     @Autowired
@@ -29,7 +29,7 @@ public class OperationLogController {
      * 分页查询操作日志列表
      */
     @GetMapping("/list")
-    @RequirePermission("api:operation-log:list")
+    @RequirePermission("admin:api:operation-log:list")
     public Response<OperationLogListResponse> getOperationLogList(OperationLogListRequest request) {
         OperationLogListResponse response = sysOperationLogService.getOperationLogList(request);
         return Response.success(response);
@@ -39,7 +39,7 @@ public class OperationLogController {
      * 根据ID获取操作日志详情
      */
     @GetMapping("/{id}")
-    @RequirePermission("api:operation-log:detail")
+    @RequirePermission("admin:api:operation-log:detail")
     public Response<OperationLogResponse> getOperationLogById(@PathVariable Long id) {
         OperationLogResponse response = sysOperationLogService.getOperationLogById(id);
         return Response.success(response);
@@ -49,7 +49,7 @@ public class OperationLogController {
      * 删除操作日志
      */
     @DeleteMapping("/{id}")
-    @RequirePermission("api:operation-log:delete")
+    @RequirePermission("admin:api:operation-log:delete")
     @Log(operationType = OperationType.DELETE, operationModule = OperationModule.LOG, operationDesc = "删除操作日志")
     public Response<Void> deleteOperationLog(@PathVariable Long id) {
         sysOperationLogService.removeById(id);
@@ -60,11 +60,10 @@ public class OperationLogController {
      * 批量删除操作日志
      */
     @DeleteMapping("/batch")
-    @RequirePermission("api:operation-log:delete")
+    @RequirePermission("admin:api:operation-log:delete")
     @Log(operationType = OperationType.DELETE, operationModule = OperationModule.LOG, operationDesc = "批量删除操作日志")
     public Response<Void> batchDeleteOperationLog(@RequestBody java.util.List<Long> ids) {
         sysOperationLogService.removeByIds(ids);
         return Response.success();
     }
 }
-

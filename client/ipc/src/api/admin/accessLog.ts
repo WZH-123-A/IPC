@@ -31,7 +31,7 @@ export interface AccessLogListParams {
  * 获取访问日志列表（分页）
  */
 export const getAccessLogListApi = async (params: AccessLogListParams) => {
-  const response = await request.get<ApiResponse<{ records: AccessLog[]; total: number; current: number; size: number }>>('/access-log/list', { params })
+  const response = await request.get<ApiResponse<{ records: AccessLog[]; total: number; current: number; size: number }>>('/admin/access-log/list', { params })
   return response.data.data
 }
 
@@ -39,7 +39,7 @@ export const getAccessLogListApi = async (params: AccessLogListParams) => {
  * 获取访问日志详情
  */
 export const getAccessLogByIdApi = async (id: number) => {
-  const response = await request.get<ApiResponse<AccessLog>>(`/access-log/${id}`)
+  const response = await request.get<ApiResponse<AccessLog>>(`/admin/access-log/${id}`)
   return response.data.data
 }
 
@@ -47,13 +47,13 @@ export const getAccessLogByIdApi = async (id: number) => {
  * 删除访问日志
  */
 export const deleteAccessLogApi = async (id: number) => {
-  await request.delete<ApiResponse<void>>(`/access-log/${id}`)
+  await request.delete<ApiResponse<void>>(`/admin/access-log/${id}`)
 }
 
 /**
  * 批量删除访问日志
  */
 export const batchDeleteAccessLogApi = async (ids: number[]) => {
-  await request.delete<ApiResponse<void>>('/access-log/batch', { data: ids })
+  await request.delete<ApiResponse<void>>('/admin/access-log/batch', { data: ids })
 }
 

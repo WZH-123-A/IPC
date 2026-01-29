@@ -1,6 +1,5 @@
-package com.ccs.ipc.controller;
+package com.ccs.ipc.controller.admin;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.ccs.ipc.common.annotation.Log;
 import com.ccs.ipc.common.annotation.RequirePermission;
 import com.ccs.ipc.common.enums.OperationModule;
@@ -26,7 +25,7 @@ import java.util.List;
  * @since 2026-01-19
  */
 @RestController
-@RequestMapping("/api/permission")
+@RequestMapping("/api/admin/permission")
 public class SysPermissionController {
 
     @Autowired
@@ -36,7 +35,7 @@ public class SysPermissionController {
      * 获取所有权限（树形结构）
      */
     @GetMapping("/tree")
-    @RequirePermission("api:permission:list")
+    @RequirePermission("admin:api:permission:list")
     @Log(operationType = OperationType.QUERY, operationModule = OperationModule.PERMISSION, operationDesc = "获取所有权限（树形结构）")
     public Response<List<PermissionTreeNode>> getPermissionTree(
             @RequestParam(required = false) Byte permissionType) {
@@ -48,7 +47,7 @@ public class SysPermissionController {
      * 获取所有权限（列表）
      */
     @GetMapping("/list")
-    @RequirePermission("api:permission:list")
+    @RequirePermission("admin:api:permission:list")
     @Log(operationType = OperationType.QUERY, operationModule = OperationModule.PERMISSION, operationDesc = "获取所有权限（列表）")
     public Response<List<SysPermissionResponse>> getPermissionList(
             @RequestParam(required = false) Byte permissionType) {
@@ -60,7 +59,7 @@ public class SysPermissionController {
      * 根据ID获取权限详情
      */
     @GetMapping("/{id}")
-    @RequirePermission("api:permission:detail")
+    @RequirePermission("admin:api:permission:detail")
     @Log(operationType = OperationType.QUERY, operationModule = OperationModule.PERMISSION, operationDesc = "根据ID获取权限详情")
     public Response<SysPermissionResponse> getPermissionById(@PathVariable Long id) {
         SysPermissionResponse response = sysPermissionService.getPermissionById(id);
@@ -71,7 +70,7 @@ public class SysPermissionController {
      * 新增权限
      */
     @PostMapping
-    @RequirePermission("api:permission:create")
+    @RequirePermission("admin:api:permission:create")
     @Log(operationType = OperationType.ADD, operationModule = OperationModule.PERMISSION, operationDesc = "新增权限")
     public Response<SysPermissionResponse> createPermission(@Valid @RequestBody CreatePermissionRequest request) {
         SysPermissionResponse response = sysPermissionService.createPermission(request);
@@ -82,7 +81,7 @@ public class SysPermissionController {
      * 更新权限
      */
     @PutMapping("/{id}")
-    @RequirePermission("api:permission:update")
+    @RequirePermission("admin:api:permission:update")
     @Log(operationType = OperationType.UPDATE, operationModule = OperationModule.PERMISSION, operationDesc = "更新权限")
     public Response<SysPermissionResponse> updatePermission(@PathVariable Long id, @RequestBody UpdatePermissionRequest request) {
         SysPermissionResponse response = sysPermissionService.updatePermission(id, request);
@@ -93,10 +92,9 @@ public class SysPermissionController {
      * 删除权限（逻辑删除）
      */
     @DeleteMapping("/{id}")
-    @RequirePermission("api:permission:delete")
+    @RequirePermission("admin:api:permission:delete")
     public Response<Void> deletePermission(@PathVariable Long id) {
         sysPermissionService.deletePermission(id);
         return Response.success();
     }
 }
-

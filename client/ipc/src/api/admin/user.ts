@@ -52,7 +52,7 @@ export interface ResetPasswordParams {
  * 获取用户列表（分页）
  */
 export const getUserListApi = async (params: UserListParams) => {
-  const response = await request.get<ApiResponse<{ records: User[]; total: number; current: number; size: number }>>('/user/list', { params })
+  const response = await request.get<ApiResponse<{ records: User[]; total: number; current: number; size: number }>>('/admin/user/list', { params })
   return response.data.data
 }
 
@@ -60,7 +60,7 @@ export const getUserListApi = async (params: UserListParams) => {
  * 获取用户详情
  */
 export const getUserByIdApi = async (id: number) => {
-  const response = await request.get<ApiResponse<User>>(`/user/${id}`)
+  const response = await request.get<ApiResponse<User>>(`/admin/user/${id}`)
   return response.data.data
 }
 
@@ -68,7 +68,7 @@ export const getUserByIdApi = async (id: number) => {
  * 新增用户
  */
 export const createUserApi = async (params: CreateUserParams) => {
-  const response = await request.post<ApiResponse<User>>('/user', params)
+  const response = await request.post<ApiResponse<User>>('/admin/user', params)
   return response.data.data
 }
 
@@ -76,7 +76,7 @@ export const createUserApi = async (params: CreateUserParams) => {
  * 更新用户
  */
 export const updateUserApi = async (id: number, params: UpdateUserParams) => {
-  const response = await request.put<ApiResponse<User>>(`/user/${id}`, params)
+  const response = await request.put<ApiResponse<User>>(`/admin/user/${id}`, params)
   return response.data.data
 }
 
@@ -84,21 +84,21 @@ export const updateUserApi = async (id: number, params: UpdateUserParams) => {
  * 删除用户
  */
 export const deleteUserApi = async (id: number) => {
-  await request.delete<ApiResponse<void>>(`/user/${id}`)
+  await request.delete<ApiResponse<void>>(`/admin/user/${id}`)
 }
 
 /**
  * 重置用户密码
  */
 export const resetPasswordApi = async (id: number, params: ResetPasswordParams) => {
-  await request.put<ApiResponse<void>>(`/user/${id}/reset-password`, params)
+  await request.put<ApiResponse<void>>(`/admin/user/${id}/reset-password`, params)
 }
 
 /**
  * 获取用户的角色ID列表
  */
 export const getUserRolesApi = async (id: number) => {
-  const response = await request.get<ApiResponse<number[]>>(`/user/${id}/roles`)
+  const response = await request.get<ApiResponse<number[]>>(`/admin/user/${id}/roles`)
   return response.data.data
 }
 

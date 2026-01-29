@@ -1,4 +1,4 @@
-package com.ccs.ipc.controller;
+package com.ccs.ipc.controller.admin;
 
 import com.ccs.ipc.common.annotation.Log;
 import com.ccs.ipc.common.annotation.RequirePermission;
@@ -24,7 +24,7 @@ import java.util.List;
  * @since 2026-01-19
  */
 @RestController
-@RequestMapping("/api/user")
+@RequestMapping("/api/admin/user")
 public class SysUserController {
 
     @Autowired
@@ -34,7 +34,7 @@ public class SysUserController {
      * 分页查询用户列表
      */
     @GetMapping("/list")
-    @RequirePermission("api:user:list")
+    @RequirePermission("admin:api:user:list")
     public Response<SysUserListResponse> getUserList(SysUserListRequest request) {
         SysUserListResponse response = sysUserService.getUserList(request);
         return Response.success(response);
@@ -44,7 +44,7 @@ public class SysUserController {
      * 根据ID获取用户详情
      */
     @GetMapping("/{id}")
-    @RequirePermission("api:user:detail")
+    @RequirePermission("admin:api:user:detail")
     public Response<SysUserResponse> getUserById(@PathVariable Long id) {
         SysUserResponse response = sysUserService.getUserById(id);
         return Response.success(response);
@@ -54,7 +54,7 @@ public class SysUserController {
      * 新增用户
      */
     @PostMapping
-    @RequirePermission("api:user:create")
+    @RequirePermission("admin:api:user:create")
     @Log(operationType = OperationType.ADD, operationModule = OperationModule.USER, operationDesc = "新增用户")
     public Response<SysUserResponse> createUser(@Valid @RequestBody CreateUserRequest request) {
         SysUserResponse response = sysUserService.createUser(request);
@@ -65,7 +65,7 @@ public class SysUserController {
      * 更新用户（管理员功能，可更新所有字段包括status和roleIds）
      */
     @PutMapping("/{id}")
-    @RequirePermission("api:user:update")
+    @RequirePermission("admin:api:user:update")
     @Log(operationType = OperationType.UPDATE, operationModule = OperationModule.USER, operationDesc = "更新用户")
     public Response<SysUserResponse> updateUser(@PathVariable Long id, @Valid @RequestBody UpdateUserRequest request) {
         SysUserResponse response = sysUserService.updateUserByAdmin(id, request);
@@ -88,7 +88,7 @@ public class SysUserController {
      * 删除用户（逻辑删除）
      */
     @DeleteMapping("/{id}")
-    @RequirePermission("api:user:delete")
+    @RequirePermission("admin:api:user:delete")
     @Log(operationType = OperationType.DELETE, operationModule = OperationModule.USER, operationDesc = "删除用户")
     public Response<Void> deleteUser(@PathVariable Long id) {
         sysUserService.deleteUser(id);
@@ -99,7 +99,7 @@ public class SysUserController {
      * 重置用户密码
      */
     @PutMapping("/{id}/reset-password")
-    @RequirePermission("api:user:update")
+    @RequirePermission("admin:api:user:update")
     @Log(operationType = OperationType.UPDATE_PASSWORD, operationModule = OperationModule.USER, operationDesc = "重置用户密码")
     public Response<Void> resetPassword(@PathVariable Long id, @Valid @RequestBody ResetPasswordRequest request) {
         sysUserService.resetPassword(id, request);
@@ -122,10 +122,9 @@ public class SysUserController {
      * 获取用户的角色ID列表
      */
     @GetMapping("/{id}/roles")
-    @RequirePermission("api:user:detail")
+    @RequirePermission("admin:api:user:detail")
     public Response<List<Long>> getUserRoles(@PathVariable Long id) {
         List<Long> roleIds = sysUserService.getUserRoleIds(id);
         return Response.success(roleIds);
     }
 }
-

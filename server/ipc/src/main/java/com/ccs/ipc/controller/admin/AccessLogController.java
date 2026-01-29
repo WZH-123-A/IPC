@@ -1,4 +1,4 @@
-package com.ccs.ipc.controller;
+package com.ccs.ipc.controller.admin;
 
 import com.ccs.ipc.common.annotation.Log;
 import com.ccs.ipc.common.annotation.RequirePermission;
@@ -19,7 +19,7 @@ import org.springframework.web.bind.annotation.*;
  * @since 2026-01-19
  */
 @RestController
-@RequestMapping("/api/access-log")
+@RequestMapping("/api/admin/access-log")
 public class AccessLogController {
 
     @Autowired
@@ -29,7 +29,7 @@ public class AccessLogController {
      * 分页查询访问日志列表
      */
     @GetMapping("/list")
-    @RequirePermission("api:access-log:list")
+    @RequirePermission("admin:api:access-log:list")
     public Response<AccessLogListResponse> getAccessLogList(AccessLogListRequest request) {
         AccessLogListResponse response = sysAccessLogService.getAccessLogList(request);
         return Response.success(response);
@@ -39,7 +39,7 @@ public class AccessLogController {
      * 根据ID获取访问日志详情
      */
     @GetMapping("/{id}")
-    @RequirePermission("api:access-log:detail")
+    @RequirePermission("admin:api:access-log:detail")
     public Response<AccessLogResponse> getAccessLogById(@PathVariable Long id) {
         AccessLogResponse response = sysAccessLogService.getAccessLogById(id);
         if (response == null) {
@@ -52,7 +52,7 @@ public class AccessLogController {
      * 删除访问日志
      */
     @DeleteMapping("/{id}")
-    @RequirePermission("api:access-log:delete")
+    @RequirePermission("admin:api:access-log:delete")
     @Log(operationType = OperationType.DELETE, operationModule = OperationModule.LOG, operationDesc = "删除访问日志")
     public Response<Void> deleteAccessLog(@PathVariable Long id) {
         sysAccessLogService.removeById(id);
@@ -63,11 +63,10 @@ public class AccessLogController {
      * 批量删除访问日志
      */
     @DeleteMapping("/batch")
-    @RequirePermission("api:access-log:delete")
+    @RequirePermission("admin:api:access-log:delete")
     @Log(operationType = OperationType.DELETE, operationModule = OperationModule.LOG, operationDesc = "批量删除访问日志")
     public Response<Void> batchDeleteAccessLog(@RequestBody java.util.List<Long> ids) {
         sysAccessLogService.removeByIds(ids);
         return Response.success();
     }
 }
-

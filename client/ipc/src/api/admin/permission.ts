@@ -47,7 +47,7 @@ export interface UpdatePermissionParams {
  * 获取权限树
  */
 export const getPermissionTreeApi = async (params?: PermissionListParams) => {
-  const response = await request.get<ApiResponse<PermissionTreeNode[]>>('/permission/tree', { params })
+  const response = await request.get<ApiResponse<PermissionTreeNode[]>>('/admin/permission/tree', { params })
   return response.data.data
 }
 
@@ -55,7 +55,7 @@ export const getPermissionTreeApi = async (params?: PermissionListParams) => {
  * 获取权限列表
  */
 export const getPermissionListApi = async (params?: PermissionListParams) => {
-  const response = await request.get<ApiResponse<Permission[]>>('/permission/list', { params })
+  const response = await request.get<ApiResponse<Permission[]>>('/admin/permission/list', { params })
   return response.data.data
 }
 
@@ -63,7 +63,7 @@ export const getPermissionListApi = async (params?: PermissionListParams) => {
  * 获取权限详情
  */
 export const getPermissionByIdApi = async (id: number) => {
-  const response = await request.get<ApiResponse<Permission>>(`/permission/${id}`)
+  const response = await request.get<ApiResponse<Permission>>(`/admin/permission/${id}`)
   return response.data.data
 }
 
@@ -71,7 +71,7 @@ export const getPermissionByIdApi = async (id: number) => {
  * 新增权限
  */
 export const createPermissionApi = async (params: CreatePermissionParams) => {
-  const response = await request.post<ApiResponse<Permission>>('/permission', params)
+  const response = await request.post<ApiResponse<Permission>>('/admin/permission', params)
   return response.data.data
 }
 
@@ -79,7 +79,7 @@ export const createPermissionApi = async (params: CreatePermissionParams) => {
  * 更新权限
  */
 export const updatePermissionApi = async (id: number, params: UpdatePermissionParams) => {
-  const response = await request.put<ApiResponse<Permission>>(`/permission/${id}`, params)
+  const response = await request.put<ApiResponse<Permission>>(`/admin/permission/${id}`, params)
   return response.data.data
 }
 
@@ -87,6 +87,6 @@ export const updatePermissionApi = async (id: number, params: UpdatePermissionPa
  * 删除权限
  */
 export const deletePermissionApi = async (id: number) => {
-  await request.delete<ApiResponse<void>>(`/permission/${id}`)
+  await request.delete<ApiResponse<void>>(`/admin/permission/${id}`)
 }
 
