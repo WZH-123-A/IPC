@@ -195,9 +195,10 @@ public class ConsultationMessageServiceImpl extends ServiceImpl<ConsultationMess
             throw new RuntimeException("无权操作此问诊会话");
         }
 
-        // 批量更新该会话中所有未读消息为已读
+        // 仅将「发给当前患者」的消息标为已读（即医生或 AI 发的消息），不标记患者自己发的
         LambdaQueryWrapper<ConsultationMessage> updateWrapper = new LambdaQueryWrapper<>();
         updateWrapper.eq(ConsultationMessage::getSessionId, sessionId)
+                .in(ConsultationMessage::getSenderType, (byte) 2, (byte) 3) // 2-医生 3-AI
                 .eq(ConsultationMessage::getIsRead, 0)
                 .eq(ConsultationMessage::getIsDeleted, 0);
 
@@ -221,9 +222,10 @@ public class ConsultationMessageServiceImpl extends ServiceImpl<ConsultationMess
             throw new RuntimeException("无权操作此问诊会话");
         }
 
-        // 批量更新该会话中所有未读消息为已读
+        // 仅将「发给当前医生」的消息标为已读（即患者发的消息），不标记医生自己发的
         LambdaQueryWrapper<ConsultationMessage> updateWrapper = new LambdaQueryWrapper<>();
         updateWrapper.eq(ConsultationMessage::getSessionId, sessionId)
+                .eq(ConsultationMessage::getSenderType, (byte) 1) // 1-患者
                 .eq(ConsultationMessage::getIsRead, 0)
                 .eq(ConsultationMessage::getIsDeleted, 0);
 
