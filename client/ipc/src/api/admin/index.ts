@@ -17,3 +17,6 @@ export * from './accessLog'
 
 // 操作日志管理
 export * from './operationLog'
+
+// 文件管理
+export * from './file'

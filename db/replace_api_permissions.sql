@@ -53,6 +53,9 @@ FROM (
   UNION ALL SELECT 'admin:api:consultation-evaluation:create', '创建问诊评价接口', 28
   UNION ALL SELECT 'admin:api:consultation-evaluation:update', '更新问诊评价接口', 29
   UNION ALL SELECT 'admin:api:consultation-evaluation:delete', '删除问诊评价接口', 30
+  UNION ALL SELECT 'admin:api:file:list', '文件列表接口', 31
+  UNION ALL SELECT 'admin:api:file:detail', '文件详情接口', 32
+  UNION ALL SELECT 'admin:api:file:delete', '删除文件接口', 33
 ) AS d
 CROSS JOIN (SELECT id FROM sys_permission WHERE permission_code = 'api:admin:group' AND is_deleted = 0 LIMIT 1) AS p;
 
