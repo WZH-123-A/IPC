@@ -1,5 +1,6 @@
 package com.ccs.ipc.service;
 
+import com.ccs.ipc.dto.admindto.*;
 import com.ccs.ipc.entity.KnowledgeTag;
 import com.baomidou.mybatisplus.extension.service.IService;
 
@@ -13,4 +14,13 @@ import com.baomidou.mybatisplus.extension.service.IService;
  */
 public interface IKnowledgeTagService extends IService<KnowledgeTag> {
 
+    KnowledgeTagListResponse getAdminTagList(KnowledgeTagListRequest request);
+
+    KnowledgeTagResponse getAdminTagById(Long id);
+
+    KnowledgeTagResponse createAdminTag(KnowledgeTagCreateRequest request);
+
+    void updateAdminTag(Long id, KnowledgeTagUpdateRequest request);
+
+    void deleteAdminTag(Long id);
 }

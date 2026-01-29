@@ -20,3 +20,6 @@ export * from './operationLog'
 
 // 文件管理
 export * from './file'
+
+// 知识库管理（分类、内容、标签、图片上传）
+export * from './knowledge'

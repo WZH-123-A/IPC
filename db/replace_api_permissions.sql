@@ -56,6 +56,22 @@ FROM (
   UNION ALL SELECT 'admin:api:file:list', '文件列表接口', 31
   UNION ALL SELECT 'admin:api:file:detail', '文件详情接口', 32
   UNION ALL SELECT 'admin:api:file:delete', '删除文件接口', 33
+  UNION ALL SELECT 'admin:api:knowledge:upload', '知识库图片上传接口', 34
+  UNION ALL SELECT 'admin:api:knowledge-category:list', '知识库分类列表接口', 35
+  UNION ALL SELECT 'admin:api:knowledge-category:detail', '知识库分类详情接口', 36
+  UNION ALL SELECT 'admin:api:knowledge-category:create', '创建知识库分类接口', 37
+  UNION ALL SELECT 'admin:api:knowledge-category:update', '更新知识库分类接口', 38
+  UNION ALL SELECT 'admin:api:knowledge-category:delete', '删除知识库分类接口', 39
+  UNION ALL SELECT 'admin:api:knowledge-content:list', '知识库内容列表接口', 40
+  UNION ALL SELECT 'admin:api:knowledge-content:detail', '知识库内容详情接口', 41
+  UNION ALL SELECT 'admin:api:knowledge-content:create', '创建知识库内容接口', 42
+  UNION ALL SELECT 'admin:api:knowledge-content:update', '更新知识库内容接口', 43
+  UNION ALL SELECT 'admin:api:knowledge-content:delete', '删除知识库内容接口', 44
+  UNION ALL SELECT 'admin:api:knowledge-tag:list', '知识库标签列表接口', 45
+  UNION ALL SELECT 'admin:api:knowledge-tag:detail', '知识库标签详情接口', 46
+  UNION ALL SELECT 'admin:api:knowledge-tag:create', '创建知识库标签接口', 47
+  UNION ALL SELECT 'admin:api:knowledge-tag:update', '更新知识库标签接口', 48
+  UNION ALL SELECT 'admin:api:knowledge-tag:delete', '删除知识库标签接口', 49
 ) AS d
 CROSS JOIN (SELECT id FROM sys_permission WHERE permission_code = 'api:admin:group' AND is_deleted = 0 LIMIT 1) AS p;
 
