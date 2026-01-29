@@ -3,6 +3,7 @@ package com.ccs.ipc.dto.patientdto;
 import lombok.Data;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * 知识库内容详情（患者端）
@@ -31,4 +32,6 @@ public class KnowledgeContentDetail {
     private Integer shareCount;
     private LocalDateTime publishTime;
     private LocalDateTime createTime;
+    /** 关联的标签列表 */
+    private List<KnowledgeTagSimple> tags;
 }

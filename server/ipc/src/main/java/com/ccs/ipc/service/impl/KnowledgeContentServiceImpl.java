@@ -11,17 +11,24 @@ import com.ccs.ipc.dto.patientdto.KnowledgeContentDetail;
 import com.ccs.ipc.dto.patientdto.KnowledgeContentItem;
 import com.ccs.ipc.dto.patientdto.KnowledgeContentListRequest;
 import com.ccs.ipc.dto.patientdto.KnowledgeContentListResponse;
+import com.ccs.ipc.dto.patientdto.KnowledgeTagSimple;
 import com.ccs.ipc.entity.KnowledgeCategory;
 import com.ccs.ipc.entity.KnowledgeContent;
+import com.ccs.ipc.entity.KnowledgeContentTag;
+import com.ccs.ipc.entity.KnowledgeTag;
 import com.ccs.ipc.mapper.KnowledgeContentMapper;
 import com.ccs.ipc.service.IKnowledgeCategoryService;
 import com.ccs.ipc.service.IKnowledgeContentService;
+import com.ccs.ipc.service.IKnowledgeContentTagService;
+import com.ccs.ipc.service.IKnowledgeTagService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -40,6 +47,12 @@ public class KnowledgeContentServiceImpl extends ServiceImpl<KnowledgeContentMap
 
     @Autowired
     private IKnowledgeCategoryService knowledgeCategoryService;
+
+    @Autowired
+    private IKnowledgeContentTagService knowledgeContentTagService;
+
+    @Autowired
+    private IKnowledgeTagService knowledgeTagService;
 
     @Override
     public KnowledgeContentListResponse listForPatient(KnowledgeContentListRequest request) {
@@ -75,6 +88,9 @@ public class KnowledgeContentServiceImpl extends ServiceImpl<KnowledgeContentMap
         Map<Long, KnowledgeCategory> categoryMap = knowledgeCategoryService.listByIds(categoryIds).stream()
                 .collect(Collectors.toMap(KnowledgeCategory::getId, c -> c));
 
+        Set<Long> contentIds = records.stream().map(KnowledgeContent::getId).collect(Collectors.toSet());
+        Map<Long, List<KnowledgeTagSimple>> contentIdToTags = buildContentIdToTags(contentIds);
+
         List<KnowledgeContentItem> items = records.stream().map(c -> {
             KnowledgeContentItem item = new KnowledgeContentItem();
             item.setId(c.getId());
@@ -90,6 +106,7 @@ public class KnowledgeContentServiceImpl extends ServiceImpl<KnowledgeContentMap
             item.setViewCount(c.getViewCount());
             item.setLikeCount(c.getLikeCount());
             item.setPublishTime(c.getPublishTime());
+            item.setTags(contentIdToTags.getOrDefault(c.getId(), Collections.emptyList()));
             return item;
         }).collect(Collectors.toList());
 
@@ -237,6 +254,46 @@ public class KnowledgeContentServiceImpl extends ServiceImpl<KnowledgeContentMap
         detail.setShareCount(c.getShareCount());
         detail.setPublishTime(c.getPublishTime());
         detail.setCreateTime(c.getCreateTime());
+        List<KnowledgeTagSimple> detailTags = buildContentIdToTags(Collections.singleton(id)).getOrDefault(id, Collections.emptyList());
+        detail.setTags(detailTags);
         return detail;
+    }
+
+    /**
+     * 按内容ID批量查询关联的标签（患者端展示用）
+     */
+    private Map<Long, List<KnowledgeTagSimple>> buildContentIdToTags(Set<Long> contentIds) {
+        if (contentIds == null || contentIds.isEmpty()) {
+            return Map.of();
+        }
+        List<KnowledgeContentTag> ctList = knowledgeContentTagService.lambdaQuery()
+                .in(KnowledgeContentTag::getContentId, contentIds)
+                .list();
+        if (ctList.isEmpty()) {
+            return Map.of();
+        }
+        Set<Long> tagIds = ctList.stream().map(KnowledgeContentTag::getTagId).collect(Collectors.toSet());
+        List<KnowledgeTag> tags = knowledgeTagService.listByIds(tagIds);
+        Map<Long, KnowledgeTag> tagMap = tags.stream().collect(Collectors.toMap(KnowledgeTag::getId, t -> t));
+        Map<Long, List<Long>> contentIdToTagIds = ctList.stream()
+                .collect(Collectors.groupingBy(KnowledgeContentTag::getContentId,
+                        Collectors.mapping(KnowledgeContentTag::getTagId, Collectors.toList())));
+        Map<Long, List<KnowledgeTagSimple>> result = new java.util.HashMap<>();
+        for (Long contentId : contentIds) {
+            List<Long> tIds = contentIdToTagIds.getOrDefault(contentId, Collections.emptyList());
+            List<KnowledgeTagSimple> simples = new ArrayList<>();
+            for (Long tagId : tIds) {
+                KnowledgeTag t = tagMap.get(tagId);
+                if (t != null && (t.getIsDeleted() == null || t.getIsDeleted() == 0)) {
+                    KnowledgeTagSimple s = new KnowledgeTagSimple();
+                    s.setId(t.getId());
+                    s.setTagName(t.getTagName());
+                    s.setTagColor(t.getTagColor());
+                    simples.add(s);
+                }
+            }
+            result.put(contentId, simples);
+        }
+        return result;
     }
 }

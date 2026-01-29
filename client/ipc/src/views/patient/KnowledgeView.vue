@@ -76,6 +76,17 @@
               <div class="card-body">
                 <h3 class="card-title">{{ item.title }}</h3>
                 <p v-if="item.subtitle" class="card-subtitle">{{ item.subtitle }}</p>
+                <div v-if="item.tags?.length" class="card-tags">
+                  <el-tag
+                    v-for="tag in item.tags"
+                    :key="tag.id"
+                    size="small"
+                    :style="tag.tagColor ? { backgroundColor: tag.tagColor, borderColor: tag.tagColor, color: '#fff' } : {}"
+                    class="content-tag"
+                  >
+                    {{ tag.tagName }}
+                  </el-tag>
+                </div>
                 <div class="card-meta">
                   <span v-if="item.source" class="meta-source">{{ item.source }}</span>
                   <span class="meta-views">
@@ -130,6 +141,17 @@
               <el-icon><View /></el-icon>
               {{ detailData.viewCount ?? 0 }} 次阅读
             </span>
+          </div>
+          <div v-if="detailData.tags?.length" class="detail-tags">
+            <el-tag
+              v-for="tag in detailData.tags"
+              :key="tag.id"
+              size="small"
+              :style="tag.tagColor ? { backgroundColor: tag.tagColor, borderColor: tag.tagColor, color: '#fff' } : {}"
+              class="content-tag"
+            >
+              {{ tag.tagName }}
+            </el-tag>
           </div>
         </header>
         <div v-if="detailData.coverImage" class="detail-cover">
@@ -466,6 +488,13 @@ onMounted(() => {
   overflow: hidden;
 }
 
+.card-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
 .card-meta {
   display: flex;
   align-items: center;
@@ -482,6 +511,10 @@ onMounted(() => {
   display: inline-flex;
   align-items: center;
   gap: 4px;
+}
+
+.content-tag {
+  border-radius: 6px;
 }
 
 .pagination-wrap {
@@ -546,6 +579,13 @@ onMounted(() => {
   display: inline-flex;
   align-items: center;
   gap: 4px;
+}
+
+.detail-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
 }
 
 .detail-cover {

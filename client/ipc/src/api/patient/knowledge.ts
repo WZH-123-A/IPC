@@ -11,6 +11,12 @@ export interface KnowledgeCategory {
   sort?: number
 }
 
+export interface KnowledgeTagSimple {
+  id: number
+  tagName: string
+  tagColor?: string
+}
+
 export interface KnowledgeContentItem {
   id: number
   categoryId: number
@@ -24,6 +30,7 @@ export interface KnowledgeContentItem {
   viewCount?: number
   likeCount?: number
   publishTime?: string
+  tags?: KnowledgeTagSimple[]
 }
 
 export interface KnowledgeContentDetail extends KnowledgeContentItem {
