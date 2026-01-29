@@ -29,3 +29,6 @@ export * from './knowledge'
 
 // 管理员首页（数据概览等）
 export * from './home'
+
+// 每日统计
+export * from './statistics'

@@ -2,4 +2,20 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.ccs.ipc.mapper.StatisticsDailyMapper">
 
+    <select id="sumByType" resultType="com.ccs.ipc.dto.statisticsdto.StatTypeSum">
+        SELECT stat_type AS statType, SUM(stat_value) AS total
+        FROM statistics_daily
+        <where>
+            <if test="startDate != null">
+                AND stat_date &gt;= #{startDate}
+            </if>
+            <if test="endDate != null">
+                AND stat_date &lt;= #{endDate}
+            </if>
+            <if test="statType != null and statType != ''">
+                AND stat_type = #{statType}
+            </if>
+        </where>
+        GROUP BY stat_type
+    </select>
 </mapper>
