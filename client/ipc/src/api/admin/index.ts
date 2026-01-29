@@ -32,3 +32,6 @@ export * from './home'
 
 // 每日统计
 export * from './statistics'
+
+// 用户信息（医生/患者扩展信息）
+export * from './userInfo'

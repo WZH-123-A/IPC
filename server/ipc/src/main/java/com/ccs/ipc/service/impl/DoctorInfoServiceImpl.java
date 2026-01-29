@@ -4,6 +4,12 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.ccs.ipc.dto.doctordto.*;
 import com.ccs.ipc.dto.patientdto.DoctorSimpleResponse;
+import com.ccs.ipc.common.exception.ApiException;
+import com.ccs.ipc.dto.userinfodto.AdminDoctorInfoItem;
+import com.ccs.ipc.dto.userinfodto.AdminDoctorInfoListRequest;
+import com.ccs.ipc.dto.userinfodto.AdminDoctorInfoListResponse;
+import com.ccs.ipc.dto.userinfodto.AdminDoctorInfoSaveRequest;
+import com.ccs.ipc.dto.userinfodto.UserOptionItem;
 import com.ccs.ipc.entity.*;
 import com.ccs.ipc.mapper.DoctorInfoMapper;
 import com.ccs.ipc.service.*;
@@ -16,9 +22,12 @@ import org.springframework.util.StringUtils;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -338,5 +347,170 @@ public class DoctorInfoServiceImpl extends ServiceImpl<DoctorInfoMapper, DoctorI
         }
 
         return responseList;
+    }
+
+    @Override
+    public AdminDoctorInfoListResponse getDoctorInfoListForAdmin(AdminDoctorInfoListRequest request) {
+        SysRole doctorRole = sysRoleService.getOne(new LambdaQueryWrapper<SysRole>()
+                .eq(SysRole::getRoleCode, "doctor")
+                .eq(SysRole::getIsDeleted, 0));
+        if (doctorRole == null) {
+            AdminDoctorInfoListResponse empty = new AdminDoctorInfoListResponse();
+            empty.setRecords(Collections.emptyList());
+            empty.setTotal(0L);
+            empty.setCurrent(request.getCurrent() != null ? request.getCurrent().longValue() : 1L);
+            empty.setSize(request.getSize() != null ? request.getSize().longValue() : 10L);
+            return empty;
+        }
+        List<SysUserRole> userRoles = sysUserRoleService.list(new LambdaQueryWrapper<SysUserRole>()
+                .eq(SysUserRole::getRoleId, doctorRole.getId()));
+        Set<Long> doctorUserIds = userRoles.stream().map(SysUserRole::getUserId).collect(Collectors.toSet());
+        if (doctorUserIds.isEmpty()) {
+            AdminDoctorInfoListResponse empty = new AdminDoctorInfoListResponse();
+            empty.setRecords(Collections.emptyList());
+            empty.setTotal(0L);
+            empty.setCurrent(request.getCurrent() != null ? request.getCurrent().longValue() : 1L);
+            empty.setSize(request.getSize() != null ? request.getSize().longValue() : 10L);
+            return empty;
+        }
+        if (StringUtils.hasText(request.getUsername()) || StringUtils.hasText(request.getRealName())) {
+            LambdaQueryWrapper<SysUser> userQ = new LambdaQueryWrapper<SysUser>()
+                    .in(SysUser::getId, doctorUserIds)
+                    .eq(SysUser::getIsDeleted, 0);
+            if (StringUtils.hasText(request.getUsername())) {
+                userQ.like(SysUser::getUsername, request.getUsername());
+            }
+            if (StringUtils.hasText(request.getRealName())) {
+                userQ.like(SysUser::getRealName, request.getRealName());
+            }
+            List<SysUser> filtered = sysUserService.list(userQ);
+            doctorUserIds = filtered.stream().map(SysUser::getId).collect(Collectors.toSet());
+            if (doctorUserIds.isEmpty()) {
+                AdminDoctorInfoListResponse empty = new AdminDoctorInfoListResponse();
+                empty.setRecords(Collections.emptyList());
+                empty.setTotal(0L);
+                empty.setCurrent(request.getCurrent() != null ? request.getCurrent().longValue() : 1L);
+                empty.setSize(request.getSize() != null ? request.getSize().longValue() : 10L);
+                return empty;
+            }
+        }
+        long current = request.getCurrent() != null && request.getCurrent() > 0 ? request.getCurrent() : 1L;
+        long size = request.getSize() != null && request.getSize() > 0 ? request.getSize() : 10L;
+        LambdaQueryWrapper<DoctorInfo> q = new LambdaQueryWrapper<DoctorInfo>()
+                .eq(DoctorInfo::getIsDeleted, 0)
+                .in(DoctorInfo::getUserId, doctorUserIds);
+        if (StringUtils.hasText(request.getHospital())) {
+            q.like(DoctorInfo::getHospital, request.getHospital());
+        }
+        if (StringUtils.hasText(request.getDepartment())) {
+            q.like(DoctorInfo::getDepartment, request.getDepartment());
+        }
+        q.orderByDesc(DoctorInfo::getCreateTime);
+        Page<DoctorInfo> page = page(new Page<>(current, size), q);
+        List<DoctorInfo> records = page.getRecords();
+        Set<Long> userIds = records.stream().map(DoctorInfo::getUserId).collect(Collectors.toSet());
+        Map<Long, SysUser> userMap = sysUserService.listByIds(userIds).stream().collect(Collectors.toMap(SysUser::getId, u -> u));
+        DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+        List<AdminDoctorInfoItem> items = records.stream().map(d -> {
+            AdminDoctorInfoItem item = new AdminDoctorInfoItem();
+            item.setId(d.getId());
+            item.setUserId(d.getUserId());
+            item.setHospital(d.getHospital());
+            item.setDepartment(d.getDepartment());
+            item.setTitle(d.getTitle());
+            item.setSpecialty(d.getSpecialty());
+            item.setLicenseNo(d.getLicenseNo());
+            item.setWorkYears(d.getWorkYears());
+            item.setCreateTime(d.getCreateTime() == null ? null : d.getCreateTime().format(dtf));
+            item.setUpdateTime(d.getUpdateTime() == null ? null : d.getUpdateTime().format(dtf));
+            SysUser u = userMap.get(d.getUserId());
+            if (u != null) {
+                item.setUsername(u.getUsername());
+                item.setRealName(u.getRealName());
+                item.setPhone(u.getPhone());
+            }
+            return item;
+        }).collect(Collectors.toList());
+        AdminDoctorInfoListResponse response = new AdminDoctorInfoListResponse();
+        response.setRecords(items);
+        response.setTotal(page.getTotal());
+        response.setCurrent(page.getCurrent());
+        response.setSize(page.getSize());
+        return response;
+    }
+
+    @Override
+    public List<UserOptionItem> getDoctorUserOptionsForAdmin() {
+        SysRole doctorRole = sysRoleService.getOne(new LambdaQueryWrapper<SysRole>()
+                .eq(SysRole::getRoleCode, "doctor")
+                .eq(SysRole::getIsDeleted, 0));
+        if (doctorRole == null) return Collections.emptyList();
+        List<SysUserRole> userRoles = sysUserRoleService.list(new LambdaQueryWrapper<SysUserRole>()
+                .eq(SysUserRole::getRoleId, doctorRole.getId()));
+        Set<Long> doctorUserIds = userRoles.stream().map(SysUserRole::getUserId).collect(Collectors.toSet());
+        if (doctorUserIds.isEmpty()) return Collections.emptyList();
+        List<DoctorInfo> existing = list(new LambdaQueryWrapper<DoctorInfo>()
+                .eq(DoctorInfo::getIsDeleted, 0)
+                .in(DoctorInfo::getUserId, doctorUserIds));
+        Set<Long> hasInfoUserIds = existing.stream().map(DoctorInfo::getUserId).collect(Collectors.toSet());
+        doctorUserIds.removeAll(hasInfoUserIds);
+        if (doctorUserIds.isEmpty()) return Collections.emptyList();
+        List<SysUser> users = sysUserService.list(new LambdaQueryWrapper<SysUser>()
+                .in(SysUser::getId, doctorUserIds)
+                .eq(SysUser::getIsDeleted, 0));
+        return users.stream().map(u -> {
+            UserOptionItem item = new UserOptionItem();
+            item.setId(u.getId());
+            item.setUsername(u.getUsername());
+            item.setRealName(u.getRealName());
+            return item;
+        }).collect(Collectors.toList());
+    }
+
+    @Override
+    public void createDoctorInfoForAdmin(AdminDoctorInfoSaveRequest request) {
+        SysRole doctorRole = sysRoleService.getOne(new LambdaQueryWrapper<SysRole>()
+                .eq(SysRole::getRoleCode, "doctor")
+                .eq(SysRole::getIsDeleted, 0));
+        if (doctorRole == null) throw new ApiException("未找到医生角色");
+        long count = sysUserRoleService.count(new LambdaQueryWrapper<SysUserRole>()
+                .eq(SysUserRole::getUserId, request.getUserId())
+                .eq(SysUserRole::getRoleId, doctorRole.getId()));
+        if (count == 0) throw new ApiException("该用户不是医生角色");
+        long exist = count(new LambdaQueryWrapper<DoctorInfo>()
+                .eq(DoctorInfo::getUserId, request.getUserId())
+                .eq(DoctorInfo::getIsDeleted, 0));
+        if (exist > 0) throw new ApiException("该用户已填写医生信息");
+        DoctorInfo entity = new DoctorInfo();
+        entity.setUserId(request.getUserId());
+        entity.setHospital(request.getHospital());
+        entity.setDepartment(request.getDepartment());
+        entity.setTitle(request.getTitle());
+        entity.setSpecialty(request.getSpecialty());
+        entity.setLicenseNo(request.getLicenseNo());
+        entity.setWorkYears(request.getWorkYears());
+        entity.setIsDeleted((byte) 0);
+        save(entity);
+    }
+
+    @Override
+    public void updateDoctorInfoForAdmin(Long id, AdminDoctorInfoSaveRequest request) {
+        DoctorInfo entity = getById(id);
+        if (entity == null) throw new ApiException("医生信息不存在");
+        entity.setHospital(request.getHospital());
+        entity.setDepartment(request.getDepartment());
+        entity.setTitle(request.getTitle());
+        entity.setSpecialty(request.getSpecialty());
+        entity.setLicenseNo(request.getLicenseNo());
+        entity.setWorkYears(request.getWorkYears());
+        updateById(entity);
+    }
+
+    @Override
+    public void deleteDoctorInfoForAdmin(Long id) {
+        DoctorInfo entity = getById(id);
+        if (entity == null) throw new ApiException("医生信息不存在");
+        entity.setIsDeleted((byte) 1);
+        updateById(entity);
     }
 }
