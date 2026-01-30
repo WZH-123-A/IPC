@@ -8,7 +8,7 @@
     @search="handleSearch"
     @add="handleAdd"
     @edit="handleEdit"
-    @delete="(row) => handleDelete(row as KnowledgeTag)"
+    @delete="(row) => handleDelete(row as unknown as KnowledgeTag)"
     @submit="handleSubmit"
   >
     <template #search-form="{ searchForm }">
@@ -28,11 +28,11 @@
       <el-table-column prop="tagColor" label="颜色" width="120">
         <template #default="{ row }">
           <span
-            v-if="(row as KnowledgeTag).tagColor"
+            v-if="(row as unknown as KnowledgeTag).tagColor"
             class="tag-color-dot"
-            :style="{ background: (row as KnowledgeTag).tagColor }"
+            :style="{ background: (row as unknown as KnowledgeTag).tagColor }"
           />
-          <span>{{ (row as KnowledgeTag).tagColor || '-' }}</span>
+          <span>{{ (row as unknown as KnowledgeTag).tagColor || '-' }}</span>
         </template>
       </el-table-column>
       <el-table-column prop="useCount" label="使用次数" width="100" />
