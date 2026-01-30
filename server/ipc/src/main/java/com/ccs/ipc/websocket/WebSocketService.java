@@ -1,6 +1,7 @@
 package com.ccs.ipc.websocket;
 
 import com.ccs.ipc.dto.patientdto.ConsultationMessageResponse;
+import com.ccs.ipc.dto.patientdto.ConsultationStreamPayload;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
@@ -32,6 +33,39 @@ public class WebSocketService {
         String destination = "/topic/consultation/" + sessionId;
         messagingTemplate.convertAndSend(destination, message);
         log.debug("向会话 {} 推送消息: {}", sessionId, message.getId());
+    }
+
+    /**
+     * AI 流式开始：通知客户端开始展示流式内容
+     */
+    public void sendAiStreamStart(Long sessionId) {
+        String destination = "/topic/consultation/" + sessionId;
+        ConsultationStreamPayload payload = new ConsultationStreamPayload(
+                ConsultationStreamPayload.TYPE_AI_STREAM_START, sessionId, null, null);
+        messagingTemplate.convertAndSend(destination, payload);
+        log.debug("向会话 {} 推送 ai_stream_start", sessionId);
+    }
+
+    /**
+     * AI 流式片段：每收到模型一段输出就推送
+     */
+    public void sendAiStreamChunk(Long sessionId, String chunk) {
+        if (chunk == null || chunk.isEmpty()) return;
+        String destination = "/topic/consultation/" + sessionId;
+        ConsultationStreamPayload payload = new ConsultationStreamPayload(
+                ConsultationStreamPayload.TYPE_AI_STREAM_CHUNK, sessionId, chunk, null);
+        messagingTemplate.convertAndSend(destination, payload);
+    }
+
+    /**
+     * AI 流式结束：推送完整消息并保存到 DB 后由调用方发送
+     */
+    public void sendAiStreamEnd(Long sessionId, ConsultationMessageResponse message) {
+        String destination = "/topic/consultation/" + sessionId;
+        ConsultationStreamPayload payload = new ConsultationStreamPayload(
+                ConsultationStreamPayload.TYPE_AI_STREAM_END, sessionId, null, message);
+        messagingTemplate.convertAndSend(destination, payload);
+        log.debug("向会话 {} 推送 ai_stream_end: {}", sessionId, message.getId());
     }
 
     /**

@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import { websocketClient, type WebSocketMessage } from '../utils/websocket'
+import { websocketClient, type WebSocketMessage, type ConsultationStreamPayload } from '../utils/websocket'
 import { getConsultationListApi } from '../api/doctor'
 import { getConsultationSessions } from '../api/patient/consultation'
 import { useAuthStore } from './auth'
@@ -21,8 +21,8 @@ export const useConsultationMessageStore = defineStore('consultationMessage', ()
   // 所有会话的消息映射：sessionId -> messages[]
   const sessionMessages = ref<Map<number, WebSocketMessage[]>>(new Map())
   
-  // 会话订阅回调映射：sessionId -> callbacks[]
-  const sessionCallbacks = ref<Map<number, Set<(message: WebSocketMessage) => void>>>(new Map())
+  // 会话订阅回调：可收到普通消息或流式事件（ai_stream_chunk 用于 UI 追加片段）
+  const sessionCallbacks = ref<Map<number, Set<(message: WebSocketMessage | { type: 'ai_stream_chunk'; sessionId: number; chunk: string }) => void>>>(new Map())
   
   // 全局消息回调（用于未读数更新等）
   const globalCallbacks = ref<Set<(message: WebSocketMessage) => void>>(new Set())
@@ -39,7 +39,7 @@ export const useConsultationMessageStore = defineStore('consultationMessage', ()
    * @param callback 消息回调
    * @returns 取消订阅函数
    */
-  const subscribeSession = (sessionId: number, callback: (message: WebSocketMessage) => void): () => void => {
+  const subscribeSession = (sessionId: number, callback: (message: WebSocketMessage | { type: 'ai_stream_chunk'; sessionId: number; chunk: string }) => void): () => void => {
     if (!sessionCallbacks.value.has(sessionId)) {
       sessionCallbacks.value.set(sessionId, new Set())
     }
@@ -89,52 +89,94 @@ export const useConsultationMessageStore = defineStore('consultationMessage', ()
     }
     
     try {
-      websocketClient.subscribeToSession(sessionId, (message: WebSocketMessage) => {
+      websocketClient.subscribeToSession(sessionId, (payload: WebSocketMessage | ConsultationStreamPayload) => {
+        // AI 流式载荷：在 store 内处理，再通知回调
+        if ('type' in payload && (payload as ConsultationStreamPayload).type) {
+          const stream = payload as ConsultationStreamPayload
+          if (stream.type === 'ai_stream_start') {
+            const placeholder: WebSocketMessage = {
+              id: -1,
+              sessionId: stream.sessionId,
+              senderId: 0,
+              senderType: 3,
+              messageType: 1,
+              content: '',
+              isRead: 0,
+              createTime: new Date().toISOString(),
+              isStreaming: true,
+            }
+            if (!sessionMessages.value.has(sessionId)) {
+              sessionMessages.value.set(sessionId, [])
+            }
+            sessionMessages.value.get(sessionId)!.push(placeholder)
+            const callbacks = sessionCallbacks.value.get(sessionId)
+            if (callbacks) callbacks.forEach(cb => cb(placeholder))
+          } else if (stream.type === 'ai_stream_chunk' && stream.chunk) {
+            const list = sessionMessages.value.get(sessionId)
+            const streaming = list?.find((m) => m.id === -1 || m.isStreaming)
+            if (streaming) {
+              streaming.content += stream.chunk
+              const callbacks = sessionCallbacks.value.get(sessionId)
+              if (callbacks) callbacks.forEach(cb => cb({ type: 'ai_stream_chunk', sessionId, chunk: stream.chunk! }))
+            }
+          } else if (stream.type === 'ai_stream_end' && stream.message) {
+            const list = sessionMessages.value.get(sessionId)
+            const idx = list?.findIndex((m) => m.id === -1 || m.isStreaming) ?? -1
+            const message = stream.message as WebSocketMessage
+            if (list && idx >= 0) {
+              list[idx] = message
+            } else if (list) {
+              list.push(message)
+            } else {
+              sessionMessages.value.set(sessionId, [message])
+            }
+            const chatStore = useChatStore()
+            const unreadStore = useUnreadStore()
+            const sessionListStore = useSessionListStore()
+            const authStore = useAuthStore()
+            if (chatStore.isCurrentSession(message.sessionId)) {
+              if (authStore.isDoctor) markAllMessagesAsRead(message.sessionId).catch(console.error)
+              else if (authStore.isPatient) markAllMessagesAsReadPatient(message.sessionId).catch(console.error)
+              unreadStore.clear(message.sessionId)
+            } else if (authStore.isPatient && (message.senderType === 2 || message.senderType === 3)) {
+              unreadStore.increase(message.sessionId)
+            }
+            sessionListStore.handleNewMessage(message)
+            const callbacks = sessionCallbacks.value.get(sessionId)
+            if (callbacks) callbacks.forEach(cb => cb(message))
+            globalCallbacks.value.forEach(cb => cb(message))
+          }
+          return
+        }
+
+        const message = payload as WebSocketMessage
         // 统一处理消息归属、已读逻辑和未读数更新
         const chatStore = useChatStore()
         const unreadStore = useUnreadStore()
         const sessionListStore = useSessionListStore()
         const authStore = useAuthStore()
         
-        // 如果消息属于当前打开的会话，立即标记为已读并清除未读数
         if (chatStore.isCurrentSession(message.sessionId)) {
-          // 直接调用 API，确保新消息立即标记为已读
           if (authStore.isDoctor) {
             markAllMessagesAsRead(message.sessionId).catch(console.error)
           } else if (authStore.isPatient) {
             markAllMessagesAsReadPatient(message.sessionId).catch(console.error)
           }
-          // 清除未读数（因为已读）
           unreadStore.clear(message.sessionId)
         } else {
-          // 如果消息不属于当前打开的会话，增加未读数
-          // 只统计接收到的消息（不是自己发送的）
           if (authStore.isDoctor) {
-            // 医生端：只统计患者发送的消息（senderType === 1）
-            if (message.senderType === 1) {
-              unreadStore.increase(message.sessionId)
-            }
+            if (message.senderType === 1) unreadStore.increase(message.sessionId)
           } else if (authStore.isPatient) {
-            // 患者端：只统计医生和AI发送的消息（senderType === 2 或 3）
-            if (message.senderType === 2 || message.senderType === 3) {
-              unreadStore.increase(message.sessionId)
-            }
+            if (message.senderType === 2 || message.senderType === 3) unreadStore.increase(message.sessionId)
           }
         }
         
-        // 通知会话列表 store 处理新消息（事件驱动）
         sessionListStore.handleNewMessage(message)
         
-        // 消息分发：通知所有订阅该会话的回调
         const callbacks = sessionCallbacks.value.get(sessionId)
-        if (callbacks) {
-          callbacks.forEach(cb => cb(message))
-        }
-        
-        // 通知全局回调
+        if (callbacks) callbacks.forEach(cb => cb(message))
         globalCallbacks.value.forEach(cb => cb(message))
         
-        // 保存消息到历史记录（可选）
         if (!sessionMessages.value.has(sessionId)) {
           sessionMessages.value.set(sessionId, [])
         }

@@ -11,6 +11,18 @@ export interface WebSocketMessage {
   aiModel?: string
   isRead: number
   createTime: string
+  /** 流式输出中占位消息标识，结束时由服务端推送完整消息替换 */
+  isStreaming?: boolean
+}
+
+/**
+ * AI 流式输出 WebSocket 载荷（与 ConsultationMessageResponse 同 destination，根据 type 区分）
+ */
+export interface ConsultationStreamPayload {
+  type: 'ai_stream_start' | 'ai_stream_chunk' | 'ai_stream_end'
+  sessionId: number
+  chunk?: string
+  message?: WebSocketMessage
 }
 
 /**
@@ -352,9 +364,16 @@ export class WebSocketClient {
           console.error('消息体为空，无法解析')
           return
         }
-        console.log('准备解析消息JSON，body:', frame.body)
-        const message = JSON.parse(frame.body) as WebSocketMessage
-        console.log('WebSocket解析消息成功:', message)
+        const parsed = JSON.parse(frame.body) as WebSocketMessage | ConsultationStreamPayload
+        // AI 流式载荷：带 type 字段，原样传给回调由 store 处理
+        if ('type' in parsed && (parsed as ConsultationStreamPayload).type?.startsWith('ai_stream_')) {
+          if (typeof callback === 'function') {
+            callback(parsed as unknown as WebSocketMessage)
+          }
+          return
+        }
+        const message = parsed as WebSocketMessage
+        console.log('WebSocket解析消息成功:', message.id)
         // 确保回调被调用
         if (typeof callback === 'function') {
           callback(message)

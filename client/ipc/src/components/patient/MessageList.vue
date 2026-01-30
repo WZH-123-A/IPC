@@ -34,7 +34,13 @@
           <span class="message-time">{{ formatMessageTime(message.createTime) }}</span>
         </div>
         <div class="message-body">
-          <div v-if="message.messageType === 1" class="message-text">{{ message.content }}</div>
+          <!-- AI 文本消息按 Markdown 渲染（标题、表格、列表等） -->
+          <div
+            v-if="message.messageType === 1 && message.senderType === 3"
+            class="message-text message-markdown"
+            v-html="renderMarkdown(message.content)"
+          />
+          <div v-else-if="message.messageType === 1" class="message-text">{{ message.content }}</div>
           <div v-else-if="message.messageType === 2" class="message-image">
             <el-image :src="message.content" fit="cover" :preview-src-list="[message.content]" />
           </div>
@@ -52,6 +58,7 @@
 import { ref, watch, nextTick, onMounted } from 'vue'
 import { ChatDotRound, UserFilled, Loading } from '@element-plus/icons-vue'
 import type { ConsultationMessage } from '../../api/patient/consultation'
+import { renderMarkdown } from '../../utils/markdown'
 
 interface Props {
   messages: ConsultationMessage[]
@@ -167,6 +174,66 @@ defineExpose({
   line-height: 1.6;
   word-wrap: break-word;
 }
+
+/* AI Markdown 渲染样式：标题、表格、列表等 */
+.message-markdown :deep(h1),
+.message-markdown :deep(h2),
+.message-markdown :deep(h3),
+.message-markdown :deep(h4),
+.message-markdown :deep(h5),
+.message-markdown :deep(h6) {
+  margin: 0.75em 0 0.35em;
+  font-weight: 600;
+  line-height: 1.3;
+}
+.message-markdown :deep(h1) { font-size: 1.25em; }
+.message-markdown :deep(h2) { font-size: 1.15em; }
+.message-markdown :deep(h3) { font-size: 1.05em; }
+.message-markdown :deep(p) { margin: 0.5em 0; }
+.message-markdown :deep(ul),
+.message-markdown :deep(ol) {
+  margin: 0.5em 0;
+  padding-left: 1.5em;
+}
+.message-markdown :deep(li) { margin: 0.25em 0; }
+.message-markdown :deep(table) {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0.75em 0;
+  font-size: 0.9em;
+}
+.message-markdown :deep(th),
+.message-markdown :deep(td) {
+  border: 1px solid #e4e7ed;
+  padding: 6px 10px;
+  text-align: left;
+}
+.message-markdown :deep(th) {
+  background: #f5f7fa;
+  font-weight: 600;
+}
+.message-markdown :deep(blockquote) {
+  margin: 0.5em 0;
+  padding-left: 1em;
+  border-left: 3px solid #c0c4cc;
+  color: #606266;
+}
+.message-markdown :deep(hr) { margin: 1em 0; border: none; border-top: 1px solid #e4e7ed; }
+.message-markdown :deep(strong) { font-weight: 600; }
+.message-markdown :deep(code) {
+  background: #f5f7fa;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.9em;
+}
+.message-markdown :deep(pre) {
+  background: #f5f7fa;
+  padding: 10px;
+  border-radius: 6px;
+  overflow-x: auto;
+  margin: 0.5em 0;
+}
+.message-markdown :deep(pre code) { background: none; padding: 0; }
 
 .message-image {
   max-width: 300px;

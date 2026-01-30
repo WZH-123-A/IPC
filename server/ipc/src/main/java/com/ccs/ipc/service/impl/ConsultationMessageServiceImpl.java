@@ -15,6 +15,8 @@ import com.ccs.ipc.service.IConsultationMessageService;
 import com.ccs.ipc.service.IConsultationSessionService;
 import com.ccs.ipc.websocket.WebSocketService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import dev.langchain4j.model.chat.response.ChatResponse;
+import dev.langchain4j.model.chat.response.StreamingChatResponseHandler;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -112,45 +114,51 @@ public class ConsultationMessageServiceImpl extends ServiceImpl<ConsultationMess
         // 通过WebSocket推送消息到会话的所有参与者
         webSocketService.sendMessageToSession(request.getSessionId(), messageResponse);
 
-        // AI问诊：自动生成AI回复并推送（失败不影响用户消息发送）
+        // AI问诊：流式生成AI回复并推送，避免请求过长时间
         if (session.getSessionType() != null && session.getSessionType() == 1) {
+            Long sessionId = request.getSessionId();
+            int maxHistory = qwenAiProperties.getMaxHistoryMessages() != null ? qwenAiProperties.getMaxHistoryMessages() : 20;
+            List<ConsultationMessage> history = getRecentMessagesForAi(sessionId, maxHistory);
+
+            webSocketService.sendAiStreamStart(sessionId);
             try {
-                int maxHistory = qwenAiProperties.getMaxHistoryMessages() != null ? qwenAiProperties.getMaxHistoryMessages() : 20;
-                List<ConsultationMessage> history = getRecentMessagesForAi(request.getSessionId(), maxHistory);
-                String reply = qwenAiService.generateReply(session.getTitle(), history);
+                qwenAiService.generateReplyStreaming(session.getTitle(), history, new StreamingChatResponseHandler() {
+                    @Override
+                    public void onPartialResponse(String partialResponse) {
+                        if (partialResponse != null && !partialResponse.isEmpty()) {
+                            webSocketService.sendAiStreamChunk(sessionId, partialResponse);
+                        }
+                    }
 
-                ConsultationMessage aiMessage = new ConsultationMessage();
-                aiMessage.setSessionId(request.getSessionId());
-                aiMessage.setSenderId(0L);
-                aiMessage.setSenderType((byte) 3); // AI
-                aiMessage.setMessageType((byte) 1); // 文本
-                aiMessage.setContent(reply);
-                aiMessage.setAiModel(qwenAiProperties.getModel());
-                aiMessage.setIsRead((byte) 0);
-                aiMessage.setIsDeleted((byte) 0);
-                this.save(aiMessage);
+                    @Override
+                    public void onCompleteResponse(ChatResponse completeResponse) {
+                        if (completeResponse == null || completeResponse.aiMessage() == null) return;
+                        String fullContent = completeResponse.aiMessage().text();
+                        if (fullContent == null) fullContent = "";
+                        fullContent = fullContent.trim();
+                        ConsultationMessage aiMessage = new ConsultationMessage();
+                        aiMessage.setSessionId(sessionId);
+                        aiMessage.setSenderId(0L);
+                        aiMessage.setSenderType((byte) 3); // AI
+                        aiMessage.setMessageType((byte) 1); // 文本
+                        aiMessage.setContent(fullContent);
+                        aiMessage.setAiModel(qwenAiProperties.getModel());
+                        aiMessage.setIsRead((byte) 0);
+                        aiMessage.setIsDeleted((byte) 0);
+                        save(aiMessage);
+                        ConsultationMessageResponse aiResponse = convertToResponse(aiMessage);
+                        webSocketService.sendAiStreamEnd(sessionId, aiResponse);
+                    }
 
-                ConsultationMessageResponse aiResponse = convertToResponse(aiMessage);
-                webSocketService.sendMessageToSession(request.getSessionId(), aiResponse);
+                    @Override
+                    public void onError(Throwable error) {
+                        log.warn("AI问诊流式生成异常(sessionId={}): {}", sessionId, error.getMessage());
+                        sendAiFallbackMessage(sessionId);
+                    }
+                });
             } catch (Exception e) {
-                log.warn("AI问诊回复生成失败(sessionId={}): {}", request.getSessionId(), e.getMessage());
-                try {
-                    ConsultationMessage aiMessage = new ConsultationMessage();
-                    aiMessage.setSessionId(request.getSessionId());
-                    aiMessage.setSenderId(0L);
-                    aiMessage.setSenderType((byte) 3); // AI
-                    aiMessage.setMessageType((byte) 1); // 文本
-                    aiMessage.setContent("AI暂时不可用，请稍后再试。");
-                    aiMessage.setAiModel(qwenAiProperties.getModel());
-                    aiMessage.setIsRead((byte) 0);
-                    aiMessage.setIsDeleted((byte) 0);
-                    this.save(aiMessage);
-
-                    ConsultationMessageResponse aiResponse = convertToResponse(aiMessage);
-                    webSocketService.sendMessageToSession(request.getSessionId(), aiResponse);
-                } catch (Exception ignored) {
-                    // 兜底：不影响主流程
-                }
+                log.warn("AI问诊回复生成失败(sessionId={}): {}", sessionId, e.getMessage());
+                sendAiFallbackMessage(sessionId);
             }
         }
 
@@ -344,5 +352,27 @@ public class ConsultationMessageServiceImpl extends ServiceImpl<ConsultationMess
         ConsultationMessageResponse response = new ConsultationMessageResponse();
         BeanUtils.copyProperties(message, response);
         return response;
+    }
+
+    /**
+     * AI 失败时推送兜底提示消息
+     */
+    private void sendAiFallbackMessage(Long sessionId) {
+        try {
+            ConsultationMessage aiMessage = new ConsultationMessage();
+            aiMessage.setSessionId(sessionId);
+            aiMessage.setSenderId(0L);
+            aiMessage.setSenderType((byte) 3); // AI
+            aiMessage.setMessageType((byte) 1); // 文本
+            aiMessage.setContent("AI暂时不可用，请稍后再试。");
+            aiMessage.setAiModel(qwenAiProperties.getModel());
+            aiMessage.setIsRead((byte) 0);
+            aiMessage.setIsDeleted((byte) 0);
+            save(aiMessage);
+            ConsultationMessageResponse aiResponse = convertToResponse(aiMessage);
+            webSocketService.sendMessageToSession(sessionId, aiResponse);
+        } catch (Exception ignored) {
+            // 兜底：不影响主流程
+        }
     }
 }

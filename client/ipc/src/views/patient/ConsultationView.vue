@@ -192,20 +192,34 @@ watch(currentSessionId, async (newId) => {
   // 通知 store 打开会话（统一处理已读逻辑）
   await chatStore.openSession(newId)
 
-  // 订阅消息更新
-  unsubscribeMessage = messageStore.subscribeSession(newId, (message: WebSocketMessage) => {
-    // 组件不判断消息归属，只负责展示
-    const exists = messages.value.some((m) => m.id === message.id)
-    if (!exists) {
-      messages.value = [...messages.value, message as ConsultationMessage]
-      // 使用nextTick确保DOM更新后再滚动
-      nextTick(() => {
-        const messageListElement = document.querySelector('.messages-container')
-        if (messageListElement) {
-          messageListElement.scrollTop = messageListElement.scrollHeight
-        }
-      })
+  // 订阅消息更新（含 AI 流式：占位消息 + chunk 追加 + 结束替换）
+  unsubscribeMessage = messageStore.subscribeSession(newId, (payload: WebSocketMessage | { type: 'ai_stream_chunk'; sessionId: number; chunk: string }) => {
+    if ('type' in payload && payload.type === 'ai_stream_chunk') {
+      const last = messages.value[messages.value.length - 1]
+      if (last && (last.id === -1 || (last as WebSocketMessage & { isStreaming?: boolean }).isStreaming)) {
+        last.content += payload.chunk
+        nextTick(() => {
+          const messageListElement = document.querySelector('.messages-container')
+          if (messageListElement) messageListElement.scrollTop = messageListElement.scrollHeight
+        })
+      }
+      return
     }
+    const message = payload as WebSocketMessage
+    const last = messages.value[messages.value.length - 1]
+    const isStreamingPlaceholder = last && (last.id === -1 || (last as WebSocketMessage & { isStreaming?: boolean }).isStreaming)
+    if (isStreamingPlaceholder && message.senderType === 3) {
+      messages.value = [...messages.value.slice(0, -1), message as ConsultationMessage]
+    } else {
+      const exists = messages.value.some((m) => m.id === message.id)
+      if (!exists) {
+        messages.value = [...messages.value, message as ConsultationMessage]
+      }
+    }
+    nextTick(() => {
+      const messageListElement = document.querySelector('.messages-container')
+      if (messageListElement) messageListElement.scrollTop = messageListElement.scrollHeight
+    })
   })
 
   // 确保该会话已添加到消息分发中心

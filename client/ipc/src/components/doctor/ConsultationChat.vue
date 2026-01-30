@@ -51,12 +51,18 @@
           <div class="message-content">
             <div class="message-header">
               <span class="sender-name">
-                {{ message.senderType === 2 ? '我' : session?.patientName || '患者' }}
+                {{ message.senderType === 2 ? '我' : message.senderType === 3 ? 'AI助手' : (session?.patientName || '患者') }}
               </span>
               <span class="message-time">{{ formatTime(message.createTime) }}</span>
             </div>
             <div class="message-bubble">
-              <div v-if="message.messageType === 1" class="text-message">
+              <!-- AI 文本消息按 Markdown 渲染 -->
+              <div
+                v-if="message.messageType === 1 && message.senderType === 3"
+                class="text-message message-markdown"
+                v-html="renderMarkdown(message.content)"
+              />
+              <div v-else-if="message.messageType === 1" class="text-message">
                 {{ message.content }}
               </div>
               <div v-else-if="message.messageType === 2" class="image-message">
@@ -123,6 +129,7 @@ import {
 import { useConsultationMessageStore } from '../../stores/consultationMessage'
 import { useChatStore } from '../../stores/chat'
 import type { WebSocketMessage } from '../../utils/websocket'
+import { renderMarkdown } from '../../utils/markdown'
 
 interface Props {
   session: {
@@ -323,9 +330,10 @@ watch(
     // 通知 store 打开会话（统一处理已读逻辑）
     await chatStore.openSession(newId)
 
-    // 订阅消息更新
-    unsubscribeMessage = messageStore.subscribeSession(newId, (message: WebSocketMessage) => {
-      // 组件不判断消息归属，只负责展示
+    // 订阅消息更新（医生端会话无 AI 流式，忽略流式载荷即可）
+    unsubscribeMessage = messageStore.subscribeSession(newId, (payload: WebSocketMessage | { type: 'ai_stream_chunk'; sessionId: number; chunk: string }) => {
+      if ('type' in payload && payload.type === 'ai_stream_chunk') return
+      const message = payload as WebSocketMessage
       const exists = messages.value.some((m) => m.id === message.id)
       if (!exists) {
         messages.value = [...messages.value, message as ConsultationMessage]
@@ -518,6 +526,66 @@ onUnmounted(() => {
 .text-message {
   line-height: 1.5;
 }
+
+/* AI Markdown 渲染样式 */
+.message-markdown :deep(h1),
+.message-markdown :deep(h2),
+.message-markdown :deep(h3),
+.message-markdown :deep(h4),
+.message-markdown :deep(h5),
+.message-markdown :deep(h6) {
+  margin: 0.75em 0 0.35em;
+  font-weight: 600;
+  line-height: 1.3;
+}
+.message-markdown :deep(h1) { font-size: 1.25em; }
+.message-markdown :deep(h2) { font-size: 1.15em; }
+.message-markdown :deep(h3) { font-size: 1.05em; }
+.message-markdown :deep(p) { margin: 0.5em 0; }
+.message-markdown :deep(ul),
+.message-markdown :deep(ol) {
+  margin: 0.5em 0;
+  padding-left: 1.5em;
+}
+.message-markdown :deep(li) { margin: 0.25em 0; }
+.message-markdown :deep(table) {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0.75em 0;
+  font-size: 0.9em;
+}
+.message-markdown :deep(th),
+.message-markdown :deep(td) {
+  border: 1px solid #e4e7ed;
+  padding: 6px 10px;
+  text-align: left;
+}
+.message-markdown :deep(th) {
+  background: #f5f7fa;
+  font-weight: 600;
+}
+.message-markdown :deep(blockquote) {
+  margin: 0.5em 0;
+  padding-left: 1em;
+  border-left: 3px solid #c0c4cc;
+  color: #606266;
+}
+.message-markdown :deep(hr) { margin: 1em 0; border: none; border-top: 1px solid #e4e7ed; }
+.message-markdown :deep(strong) { font-weight: 600; }
+.message-markdown :deep(code) {
+  background: #f5f7fa;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.9em;
+}
+.message-markdown :deep(pre) {
+  background: #f5f7fa;
+  padding: 10px;
+  border-radius: 6px;
+  overflow-x: auto;
+  margin: 0.5em 0;
+}
+.message-markdown :deep(pre code) { background: none; padding: 0; }
 
 .image-message :deep(.el-image) {
   max-width: 200px;
